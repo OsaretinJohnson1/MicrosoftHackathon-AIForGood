@@ -7,12 +7,14 @@ export interface Panel {
   export interface Comic {
     id: string
     title: string
-    description?: string
-    panels: Panel[]
+    description: string
+    imageUrl: string
+    author: Author
+    category: string
+    language: string
+    region: string
+    likes: number
     createdAt: string
-    language?: string
-    userId?: string
-    characters?: string[]
   }
   
   export interface ComicScene {
@@ -31,5 +33,10 @@ export interface Panel {
       language: string
       score: number
     }
+  }
+  
+  export interface Author {
+    name: string
+    avatar: string
   }
   
