@@ -1,75 +1,110 @@
-import { NextResponse } from 'next/server';
-import { Groq } from 'groq-sdk';
+import { NextRequest, NextResponse } from "next/server";
+import { generateComicScript } from "@/lib/azure/openai";
+import { generateComicPanels } from "@/lib/azure/openai";
+import { uploadImage } from "@/lib/azure/blob";
+import { db } from "@/database/db";
+import { comics, comicPanels, stories } from "@/database/AI-For-Good/schema";
+import { eq } from "drizzle-orm";
 
-// Initialize Groq client
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
-
-// Scene generation prompt template
-const SCENE_GENERATION_PROMPT = `You are a creative storyteller and comic artist. Break down the following story into vivid scenes and identify key characters. 
-Focus on visual elements that would make compelling comic panels. Consider:
-- Character expressions and poses
-- Important actions and movements
-- Key objects and settings
-- Emotional moments
-- Cultural elements and symbolism
-
-Format the response as a JSON object with:
-- scenes: Array of detailed scene descriptions
-- characters: Array of character descriptions with their roles and visual characteristics
-- cultural_elements: Array of important cultural references or symbols
-- mood: Overall mood/tone of the story
-
-Story: `;
-
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { story, language } = await request.json();
-
-    if (!story) {
-      return NextResponse.json(
-        { error: 'Story text is required' },
-        { status: 400 }
-      );
+    const body = await request.json();
+    const { storyId, title, description } = body;
+    
+    // Validate required fields
+    if (!storyId) {
+      return NextResponse.json({ error: "Missing storyId parameter" }, { status: 400 });
     }
-
-    // Generate scenes using Groq
-    const completion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: 'system',
-          content: SCENE_GENERATION_PROMPT
-        },
-        {
-          role: 'user',
-          content: story
-        }
-      ],
-      model: 'mixtral-8x7b-32768', // Using Mixtral model for high-quality output
-      temperature: 0.7,
-      max_tokens: 2000,
-      response_format: { type: 'json_object' }
-    });
-
-    // Parse the response
-    const response = completion.choices[0]?.message?.content;
-    if (!response) {
-      throw new Error('No response from Groq');
+    
+    // Get the story content from the database
+    const story = await db.select({
+      id: stories.id,
+      title: stories.title,
+      content: stories.originalContent,
+      language: stories.originalLanguageId,
+    })
+    .from(stories)
+    .where(eq(stories.id, storyId))
+    .limit(1);
+    
+    if (!story || story.length === 0) {
+      return NextResponse.json({ error: "Story not found" }, { status: 404 });
     }
-
-    const comicStructure = JSON.parse(response);
-
-    return NextResponse.json({
-      ...comicStructure,
-      original_language: language
-    });
-
-  } catch (error) {
-    console.error('Comic Generation Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate comic structure' },
-      { status: 500 }
+    
+    // Generate a comic script/breakdown from the story using GPT-4
+    const comicScript = await generateComicScript(
+      story[0].content, 
+      6, // Generate 6 panels by default
+      story[0].title
     );
+    
+    // Create a new comic entry in the database
+    const [newComic] = await db.insert(comics)
+      .values({
+        storyId: storyId,
+        title: title || story[0].title,
+        description: description || `Comic based on "${story[0].title}"`,
+        panelCount: comicScript.panels.length,
+        status: "processing",
+        generationPrompt: comicScript.prompt,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      })
+      .returning({ id: comics.id });
+    
+    // Start generating panels in the background and don't wait for completion
+    generateComicPanels(comicScript.panels, newComic.id)
+      .then(async (generatedPanels) => {
+        // For each panel, upload the image and create a database entry
+        const panelPromises = generatedPanels.map(async (panel, index) => {
+          // Upload image to blob storage
+          const imageUrl = await uploadImage(panel.imageData, `comic-${newComic.id}-panel-${index + 1}.png`);
+          
+          // Save panel to database
+          return db.insert(comicPanels)
+            .values({
+              comicId: newComic.id,
+              panelNumber: index + 1,
+              imageUrl: imageUrl,
+              caption: panel.caption,
+              altText: panel.altText || panel.caption,
+              promptUsed: panel.prompt,
+              createdAt: new Date().toISOString(),
+            });
+        });
+        
+        await Promise.all(panelPromises);
+        
+        // Update comic status to completed
+        await db.update(comics)
+          .set({ 
+            status: "completed",
+            updatedAt: new Date().toISOString()
+          })
+          .where(eq(comics.id, newComic.id));
+      })
+      .catch(async (error) => {
+        console.error("Error generating panels:", error);
+        // Update comic status to failed
+        await db.update(comics)
+          .set({ 
+            status: "failed",
+            updatedAt: new Date().toISOString()
+          })
+          .where(eq(comics.id, newComic.id));
+      });
+    
+    // Return the comic ID immediately without waiting for generation to complete
+    return NextResponse.json({ 
+      comicId: newComic.id,
+      message: "Comic generation started",
+      status: "processing"
+    }, { status: 202 });
+    
+  } catch (error) {
+    console.error("Error generating comic:", error);
+    return NextResponse.json({ 
+      error: `Error generating comic: ${error instanceof Error ? error.message : String(error)}` 
+    }, { status: 500 });
   }
 }

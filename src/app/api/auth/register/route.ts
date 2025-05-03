@@ -7,6 +7,7 @@ import { createUserData, getUserByField } from "@/lib/utils";
 import seedDatabase from "@/database/seed";
 import { db } from "@/database/db";
 import bcrypt from "bcrypt";
+import { eq } from "drizzle-orm";
 
 
 const tokens = new Tokens();
@@ -194,7 +195,9 @@ async function registerUser(userData: {
             verified: 0,
             idNumber: userData.idNumber || '', // Use provided ID number or empty string
             userStatus: 0, // Set userStatus to 0 for regular client users
-            isAdmin: 0 // Ensure isAdmin is also set to 0 for consistency
+            isAdmin: 0, // Ensure isAdmin is also set to 0 for consistency
+            logins: 0,
+            signupDate: new Date().toISOString()
         }, users);
 
         // Get the newly created user
@@ -227,93 +230,79 @@ async function registerUser(userData: {
 
 export async function POST(request: NextRequest) {
     try {
-        // Validate CSRF
-        const csrfResult = await validateCSRF(request);
-        if (!csrfResult.valid) {
-            return NextResponse.json(
-                { errors: { general: csrfResult.error }, success: false },
-                { status: csrfResult.status }
-            );
-        }
-
-        // Parse request body
         const body = await request.json();
-
-        // Check if this is a loan application
-        const isLoanApplication = body.isLoanApplication === true;
-
-        // Validate input with appropriate schema
-        let validationResult;
-        if (isLoanApplication) {
-            validationResult = loanApplicationSchema.safeParse(body);
-        } else {
-            validationResult = registerSchema.safeParse(body);
+        const { email, password, firstname, lastname } = body;
+        
+        // Check for missing required fields
+        const missingFields = [];
+        if (!email) missingFields.push("email");
+        if (!password) missingFields.push("password");
+        if (!firstname) missingFields.push("firstname");
+        if (!lastname) missingFields.push("lastname");
+        
+        if (missingFields.length > 0) {
+            return NextResponse.json({ 
+                error: `Missing required fields: ${missingFields.join(", ")}` 
+            }, { status: 400 });
         }
-
-        if (!validationResult.success) {
-            const validationErrors: Record<string, string> = {};
-            validationResult.error.errors.forEach((error) => {
-                const field = error.path[0] as string;
-                validationErrors[field] = error.message;
-            });
-
-            return NextResponse.json(
-                { errors: validationErrors, success: false },
-                { status: 400 }
-            );
+        
+        // Check if user with this email already exists
+        const existingUser = await db.select({ id: users.id })
+            .from(users)
+            .where(eq(users.email, email))
+            .limit(1);
+        
+        if (existingUser.length > 0) {
+            return NextResponse.json({ 
+                error: "Email is already registered" 
+            }, { status: 409 });
         }
-
-        const {
+        
+        // Hash the password
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        // Create the user
+        const result = await db.insert(users).values({
             email,
-            password,
+            password: hashedPassword,
             firstname,
             lastname,
-            countryCode,
-            phone,
-            recaptchaToken,
-            idNumber
-        } = body;
-
-        // Verify reCAPTCHA
-        const recaptchaResult = await verifyRecaptcha(recaptchaToken);
-        if (!recaptchaResult.valid) {
-            return NextResponse.json(
-                { errors: { general: recaptchaResult.error }, success: false },
-                { status: recaptchaResult.status }
-            );
-        }
-
-        // Register the user
-        const registrationResult = await registerUser({
-            email,
-            password,
-            firstname,
-            lastname,
-            countryCode,
-            phone,
-            idNumber,
-            isLoanApplication
+            activated: 1,
+            verified: 0,
+            userStatus: 0,
+            isAdmin: 0,
+            logins: 0,
+            signupDate: new Date().toISOString()
         });
-
-        if (!registrationResult.success) {
-            return NextResponse.json(
-                {
-                    errors: { [registrationResult.field || 'general']: registrationResult.error },
-                    success: false
-                },
-                { status: registrationResult.status || 500 }
-            );
+        
+        if (!result) {
+            return NextResponse.json({ 
+                error: "Failed to create user account" 
+            }, { status: 500 });
         }
-
-        // TypeScript fix: ensure we're treating user as a single object, not an array
-        const user = registrationResult.user;
-
+        
+        // Get the newly created user
+        const newUser = await db.select({
+            id: users.id,
+            email: users.email,
+            firstname: users.firstname,
+            lastname: users.lastname,
+            signupDate: users.signupDate
+        })
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+        
+        return NextResponse.json({
+            message: "User registered successfully",
+            user: newUser[0]
+        }, { status: 201 });
+        
     } catch (error) {
         console.error("Registration error:", error);
-        return NextResponse.json(
-            { errors: { general: "An unexpected error occurred" }, success: false },
-            { status: 500 }
-        );
+        return NextResponse.json({ 
+            error: `Error processing registration: ${error instanceof Error ? error.message : String(error)}` 
+        }, { status: 500 });
     }
 }
 

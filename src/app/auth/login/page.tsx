@@ -7,7 +7,7 @@ import { Box, Loader2, ArrowLeft, Eye, EyeOff, ChevronDown, CheckCircle } from "
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
-import Header from "../../../components/Header";
+import Header from "@/components/Header";
 
 
 interface FormErrors {

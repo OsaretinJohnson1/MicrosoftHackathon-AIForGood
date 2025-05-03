@@ -18,6 +18,8 @@
     "postinstall": "patch-package"
   },
   "dependencies": {
+    "@azure/openai": "^2.0.0",
+    "@azure/storage-blob": "^12.27.0",
     "@clerk/clerk-react": "^5.29.0",
     "@clerk/nextjs": "^6.17.0",
     "@paralleldrive/cuid2": "^2.2.2",
@@ -38,6 +40,7 @@
     "@types/jsonwebtoken": "^9.0.9",
     "assert": "^2.1.0",
     "axios": "^1.8.4",
+    "bcrypt": "^5.1.1",
     "browserify-zlib": "^0.2.0",
     "buffer": "^6.0.3",
     "class-variance-authority": "^0.7.1",

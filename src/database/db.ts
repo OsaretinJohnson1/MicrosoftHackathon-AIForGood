@@ -21,11 +21,11 @@ let db: DbType = mockDb;
 if (typeof window === 'undefined') {
   try {
     // Database configuration variables
-    const host = process.env.DB_HOST || 'localhost';
-    const port = parseInt(process.env.DB_PORT || '3306');
-    const user = process.env.DB_USER || 'root';
-    const password = process.env.DB_PASSWORD || 'password';
-    const dbName = process.env.DB_NAME || 'ubuntu-lend-database';
+    const host = process.env.DB_HOST || '';
+    const port = parseInt(process.env.DB_PORT || '');
+    const user = process.env.DB_USER || '';
+    const password = process.env.DB_PASSWORD || '';
+    const dbName = process.env.DB_NAME || '';
     
     // MySQL connection pool configuration
     const dbConnectionConfig = {

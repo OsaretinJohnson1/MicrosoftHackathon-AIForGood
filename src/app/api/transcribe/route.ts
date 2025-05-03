@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
-import * as sdk from 'microsoft-cognitiveservices-speech-sdk';
+import { NextRequest, NextResponse } from "next/server";
+import { transcribeAudio } from "@/lib/azure/speech";
+import { uploadAudio } from "@/lib/azure/blob";
 
 // Language code mapping
 const languageMap: { [key: string]: string } = {
@@ -9,64 +10,43 @@ const languageMap: { [key: string]: string } = {
   'en': 'en-US', // English
 };
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { audioData, language } = await request.json();
-
-    if (!audioData) {
-      return NextResponse.json(
-        { error: 'Audio data is required' },
-        { status: 400 }
-      );
+    // Using formData since we're expecting an audio file
+    const formData = await request.formData();
+    const audioFile = formData.get("audio") as File;
+    const languageCode = formData.get("languageCode") as string || "en-US";
+    
+    if (!audioFile) {
+      return NextResponse.json({ error: "Missing audio file" }, { status: 400 });
     }
-
-    // Validate language code
-    const languageCode = languageMap[language] || 'en-US';
-
-    // Create speech config
-    const speechConfig = sdk.SpeechConfig.fromSubscription(
-      process.env.AZURE_SPEECH_KEY || '',
-      process.env.AZURE_SPEECH_REGION || ''
-    );
-    speechConfig.speechRecognitionLanguage = languageCode;
-
-    // Convert base64 audio data to ArrayBuffer
-    const audioBuffer = Buffer.from(audioData, 'base64');
-
-    // Create audio config from the buffer
-    const audioConfig = sdk.AudioConfig.fromWavFileInput(audioBuffer);
-
-    // Create speech recognizer
-    const recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
-
-    // Perform speech recognition
-    const result = await new Promise((resolve, reject) => {
-      recognizer.recognizeOnceAsync(
-        (result) => {
-          if (result.reason === sdk.ResultReason.RecognizedSpeech) {
-            resolve(result.text);
-          } else {
-            reject(new Error(`Speech recognition failed: ${result.errorDetails}`));
-          }
-          recognizer.close();
-        },
-        (error) => {
-          reject(error);
-          recognizer.close();
-        }
-      );
-    });
-
+    
+    // Validate the file type
+    if (!audioFile.type.startsWith("audio/")) {
+      return NextResponse.json({ error: "File must be an audio file" }, { status: 400 });
+    }
+    
+    // Convert the file to an ArrayBuffer
+    const audioBuffer = await audioFile.arrayBuffer();
+    
+    // Save audio file to blob storage
+    const fileName = `audio-${Date.now()}.wav`;
+    const audioUrl = await uploadAudio(audioBuffer, fileName);
+    
+    // Transcribe the audio using Azure Speech services
+    const transcription = await transcribeAudio(audioBuffer, languageCode);
+    
     return NextResponse.json({
-      text: result,
-      language: language
+      transcription: transcription.text,
+      confidence: transcription.confidence,
+      audioUrl: audioUrl,
+      language: languageCode
     });
-
+    
   } catch (error) {
-    console.error('Transcription Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to transcribe audio' },
-      { status: 500 }
-    );
+    console.error("Transcription error:", error);
+    return NextResponse.json({ 
+      error: `Error transcribing audio: ${error instanceof Error ? error.message : String(error)}` 
+    }, { status: 500 });
   }
 }

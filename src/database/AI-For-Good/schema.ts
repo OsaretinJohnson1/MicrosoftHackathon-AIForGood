@@ -1,4 +1,4 @@
-import { mysqlTable, primaryKey, int, text, date, datetime, unique, varchar, decimal, index, foreignKey } from "drizzle-orm/mysql-core"
+import { mysqlTable, int, text, datetime, unique, varchar, index, foreignKey } from "drizzle-orm/mysql-core"
 import { sql } from "drizzle-orm"
 
 // Define user roles for permission control
