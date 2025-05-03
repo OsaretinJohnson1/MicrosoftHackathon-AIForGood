@@ -1,4 +1,5 @@
-import { OpenAIClient, AzureKeyCredential } from "@azure/openai";
+import { AzureOpenAI } from "openai";
+import { AzureKeyCredential } from "@azure/core-auth";
 
 // Types for comic generation
 interface ComicPanel {
@@ -18,7 +19,13 @@ interface ComicScript {
 // OpenAI client setup
 const endpoint = process.env.AZURE_OPENAI_ENDPOINT || "";
 const apiKey = process.env.AZURE_OPENAI_KEY || "";
-const client = new OpenAIClient(endpoint, new AzureKeyCredential(apiKey));
+const apiVersion = process.env.AZURE_OPENAI_API_VERSION || "2024-08-01";
+
+const client = new AzureOpenAI({
+  apiKey,
+  endpoint,
+  apiVersion,
+});
 
 // GPT model deployment name
 const deploymentName = process.env.AZURE_OPENAI_GPT_DEPLOYMENT || "gpt-4";
@@ -46,18 +53,16 @@ export async function generateComicScript(
     Include important cultural elements, symbols, and visual motifs from the original story.`;
 
     // Get the response from GPT-4
-    const response = await client.getChatCompletions(
-      deploymentName,
-      [
+    const response = await client.chat.completions.create({
+      model: deploymentName,
+      messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: `Story: ${storyText}\n\nTitle: ${title}` }
       ],
-      {
-        temperature: 0.7,
-        maxTokens: 2000,
-        responseFormat: { type: "json_object" }
-      }
-    );
+      temperature: 0.7,
+      max_tokens: 2000,
+      response_format: { type: "json_object" }
+    });
 
     // Parse the response content
     const content = response.choices[0]?.message?.content || "{}";
@@ -107,17 +112,19 @@ export async function generateComicPanels(
       Panel number ${i + 1} of ${panels.length} for comic ID ${comicId}.`;
       
       // Generate the image
-      const imageResponse = await client.getImages(
-        imageDeploymentName,
-        dallePrompt,
-        {
-          n: 1,
-          size: "1024x1024",
-          responseFormat: "b64_json"
-        }
-      );
+      const imageResponse = await client.images.generate({
+        model: imageDeploymentName,
+        prompt: dallePrompt,
+        n: 1,
+        size: "1024x1024",
+        response_format: "b64_json"
+      });
       
       // Extract the base64 image data
+      if (!imageResponse.data || imageResponse.data.length === 0) {
+        throw new Error(`Failed to generate image for panel ${i + 1}`);
+      }
+      
       const base64Image = imageResponse.data[0]?.b64_json;
       
       if (!base64Image) {

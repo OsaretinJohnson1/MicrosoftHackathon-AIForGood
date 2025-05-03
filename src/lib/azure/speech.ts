@@ -41,7 +41,7 @@ export async function transcribeAudio(
       
       // Convert ArrayBuffer to Uint8Array and push to the stream
       const audioArray = new Uint8Array(audioData);
-      pushStream.write(audioArray);
+      pushStream.write(audioArray.buffer);
       pushStream.close();
       
       const audioConfig = sdk.AudioConfig.fromStreamInput(pushStream);

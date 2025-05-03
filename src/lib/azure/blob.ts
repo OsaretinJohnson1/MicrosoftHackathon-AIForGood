@@ -117,7 +117,7 @@ export async function downloadBlob(blobName: string): Promise<ArrayBuffer> {
     const downloadResponse = await blockBlobClient.download(0);
     
     // Read the stream as ArrayBuffer
-    return await streamToArrayBuffer(downloadResponse.readableStreamBody!);
+    return await streamToArrayBuffer(downloadResponse.readableStreamBody as unknown as ReadableStream<Uint8Array>);
   } catch (error) {
     console.error("Error downloading blob:", error);
     throw new Error(`Failed to download blob: ${error instanceof Error ? error.message : String(error)}`);
@@ -144,7 +144,7 @@ export async function deleteBlob(blobName: string): Promise<void> {
 /**
  * Helper function to convert a ReadableStream to an ArrayBuffer
  */
-async function streamToArrayBuffer(stream: ReadableStream): Promise<ArrayBuffer> {
+async function streamToArrayBuffer(stream: ReadableStream<Uint8Array>): Promise<ArrayBuffer> {
   const reader = stream.getReader();
   const chunks: Uint8Array[] = [];
   
