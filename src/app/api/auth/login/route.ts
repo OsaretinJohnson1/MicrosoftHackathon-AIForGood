@@ -3,7 +3,6 @@ import { users } from "../../../../database/AI-For-Good/schema";
 import { db } from "../../../../database/db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
-import { generateJWT } from "../../../../lib/jwt";
 
 // API route handler
 export async function POST(request: NextRequest) {
@@ -11,31 +10,34 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { email, password } = body;
         
-        // Check for missing required fields
-        const missingFields = [];
-        if (!email) missingFields.push("email");
-        if (!password) missingFields.push("password");
-        
-        if (missingFields.length > 0) {
+        // Validate required fields
+        if (!email || !password) {
             return NextResponse.json({ 
-                error: `Missing required fields: ${missingFields.join(", ")}` 
+                success: false,
+                error: "Email and password are required" 
             }, { status: 400 });
         }
         
         // Find user by email
-        const userResults = await db.select().from(users).where(eq(users.email, email)).limit(1);
+        const userResults = await db.select()
+            .from(users)
+            .where(eq(users.email, email))
+            .limit(1);
         
         if (userResults.length === 0) {
+            // Don't reveal whether the email exists or not for security
             return NextResponse.json({ 
-                error: "Invalid email or password" 
+                success: false,
+                error: "Invalid credentials" 
             }, { status: 401 });
         }
         
         const user = userResults[0];
         
-        // Check if password exists
+        // Check if user has a password
         if (!user.password) {
             return NextResponse.json({ 
+                success: false,
                 error: "Account requires password reset" 
             }, { status: 401 });
         }
@@ -45,38 +47,37 @@ export async function POST(request: NextRequest) {
         
         if (!passwordMatch) {
             return NextResponse.json({ 
-                error: "Invalid email or password" 
+                success: false,
+                error: "Invalid credentials" 
             }, { status: 401 });
         }
         
-        // Update last login
+        // Update login count and timestamp
         await db.update(users)
             .set({ 
-                lastLogin: new Date().toISOString(),
-                logins: user.logins + 1
+                logins: (user.logins || 0) + 1,
+                lastLogin: new Date().toISOString()
             })
             .where(eq(users.id, user.id));
         
-        // Generate JWT token
-        const token = await generateJWT({
-            userId: user.id,
-            email: user.email,
-            isAdmin: user.isAdmin === 1
-        });
-        
-        // Return user info and token (excluding password)
-        const { password: _, ...userWithoutPassword } = user;
-        
+        // Return user data without sensitive information
         return NextResponse.json({
-            message: "Login successful",
-            user: userWithoutPassword,
-            token
-        }, { status: 200 });
+            success: true,
+            user: {
+                id: user.id,
+                email: user.email,
+                firstname: user.firstname,
+                lastname: user.lastname,
+                phone: user.phone,
+                isAdmin: user.isAdmin
+            }
+        });
         
     } catch (error) {
         console.error("Login error:", error);
         return NextResponse.json({ 
-            error: `Error processing login: ${error instanceof Error ? error.message : String(error)}` 
+            success: false,
+            error: "Server error" 
         }, { status: 500 });
     }
 }

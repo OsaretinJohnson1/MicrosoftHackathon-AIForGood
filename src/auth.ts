@@ -2,12 +2,17 @@ import NextAuth, { AuthError } from 'next-auth';
 import { authConfig } from './auth.config';
 import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
-import Google from "next-auth/providers/google";
 import Facebook from "next-auth/providers/facebook";
+import { googleProvider } from "./lib/auth-providers";
 import { db } from "@/database/db";
 import { eq } from "drizzle-orm";
 import { users, temporaryGoogleProfiles } from "@/database/AI-For-Good/schema";
 import crypto from 'crypto';
+import bcrypt from 'bcrypt';
+import { cookies } from "next/headers";
+
+// Store for tracking registration attempts
+export const registrationAttempts = new Map<string, boolean>();
 
 export class InvalidLoginError extends AuthError {
     code = 'invalid_credentials';
@@ -26,120 +31,77 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         error: "/auth/login",
     },
     providers: [
-        Google({
-            allowDangerousEmailAccountLinking: true,
-            clientId: process.env.GOOGLE_CLIENT_ID,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        }),
+        googleProvider,
         Facebook({ allowDangerousEmailAccountLinking: true }),
         GitHub({ allowDangerousEmailAccountLinking: true }),
         Credentials({
-            name: "Phone Number",
+            name: "Credentials",
             credentials: {
-                cellPhone: { label: "Phone Number", type: "text" },
                 email: { label: "Email", type: "text" },
-                otp: { label: "Verification Code", type: "text" },
-                mode: { label: "Mode", type: "text" },
-                countryCode: { label: "Country Code", type: "text" },
-                recaptchaToken: { label: "reCAPTCHA Token", type: "text" },
-                preVerified: { label: "Pre-verified", type: "text" },
+                password: { label: "Password", type: "password" },
                 provider: { label: "Provider", type: "text" },
             },
             async authorize(credentials) {
                 try {
-                    if (credentials?.provider === 'google' && credentials?.email) {
-                        const email = credentials.email as string;
-                        console.log("NextAuth authorize (Google flow) for:", email);
-
-                        const existingUsers = await db
-                            .select()
-                            .from(users)
-                            .where(eq(users.email, email))
-                            .limit(1);
-
-                        if (!existingUsers || existingUsers.length === 0) {
-                            console.log("NextAuth authorize failed: Google user not found");
-                            throw new InvalidLoginError("User not found", {});
-                        }
-
-                        const userData = existingUsers[0];
-                        console.log("NextAuth authorize success (Google flow), returning user data for ID:", userData.id);
-                        
-                        await db
-                            .update(users)
-                            .set({ 
-                                logins: (userData.logins || 0) + 1,
-                                lastLogin: new Date().toISOString().replace('T', ' ').replace(/\.\d+Z$/, '')
-                            })
-                            .where(eq(users.id, userData.id));
-
-                        return {
-                            id: String(userData.id),
-                            phone: userData.phone,
-                            firstname: userData.firstname || "",
-                            lastname: userData.lastname || "",
-                            email: userData.email,
-                            name: `${userData.firstname || ""} ${userData.lastname || ""}`.trim() || "User",
-                            picture: userData.profilePic || null,
-                            image: userData.profilePic || null,
-                            userStatus: userData.userStatus || 0,
-                            isAdmin: userData.isAdmin || 0,
-                        };
+                    console.log("Authorize function called with credentials:", { 
+                        email: credentials?.email,
+                        hasPassword: !!credentials?.password 
+                    });
+                    
+                    // If credentials are not provided or don't include email and password
+                    if (!credentials || !credentials.email || !credentials.password) {
+                        console.log("Missing required credentials");
+                        return null;
                     }
 
-                    if (!credentials?.cellPhone) {
-                        throw new InvalidLoginError("Phone number is required", {});
-                    }
-
-                    const cellPhone = credentials.cellPhone as string;
-                    const countryCode = (credentials.countryCode as string) ?? "+27";
-                    console.log("NextAuth authorize processing for:", cellPhone, countryCode);
-
-                    if (credentials?.mode !== 'verify') {
-                        console.log("NextAuth authorize failed: Invalid mode", credentials?.mode);
-                        throw new InvalidLoginError("Invalid mode", {});
-                    }
-
-                    const fullPhoneNumber = `${countryCode}${cellPhone}`;
-                    console.log("NextAuth looking up user with phone:", fullPhoneNumber);
-
-                    const existingUsers = await db
-                        .select()
-                        .from(users)
-                        .where(eq(users.phone, fullPhoneNumber))
+                    // Get user by email
+                    console.log("Looking up user with email:", credentials.email);
+                    const existingUser = await db.select().from(users)
+                        .where(eq(users.email, credentials.email as string))
                         .limit(1);
 
-                    if (!existingUsers || existingUsers.length === 0) {
-                        console.log("NextAuth authorize failed: User not found");
-                        throw new InvalidLoginError("User not found", {});
+                    // If user not found
+                    if (!existingUser.length) {
+                        console.log("User not found:", credentials.email);
+                        return null;
                     }
 
-                    const userData = existingUsers[0];
-                    console.log("NextAuth authorize success, returning user data for ID:", userData.id);
-                    
-                    await db
-                        .update(users)
-                        .set({ 
-                            logins: (userData.logins || 0) + 1,
-                            lastLogin: new Date().toISOString().replace('T', ' ').replace(/\.\d+Z$/, '')
-                        })
-                        .where(eq(users.id, userData.id));
+                    const user = existingUser[0];
+                    console.log("User found:", { id: user.id, email: user.email });
 
+                    // Check if user has a password
+                    if (!user.password) {
+                        console.log("User has no password:", credentials.email);
+                        return null;
+                    }
+
+                    // Verify password
+                    console.log("Verifying password...");
+                    const passwordsMatch = await bcrypt.compare(
+                        credentials.password as string, 
+                        user.password as string
+                    );
+
+                    if (!passwordsMatch) {
+                        console.log("Passwords don't match for user:", credentials.email);
+                        return null;
+                    }
+
+                    console.log("Password verified, authentication successful");
+                    
+                    // Password matched, return user
                     return {
-                        id: String(userData.id),
-                        phone: userData.phone,
-                        firstname: userData.firstname || "",
-                        lastname: userData.lastname || "",
-                        email: userData.email || `${cellPhone}@placeholder.com`,
-                        name: `${userData.firstname || ""} ${userData.lastname || ""}`.trim() || "User",
-                        picture: userData.profilePic || null,
-                        image: userData.profilePic || null,
-                        userStatus: userData.userStatus || 0,
-                        isAdmin: userData.isAdmin || 0,
+                        id: user.id,
+                        email: user.email,
+                        name: `${user.firstname} ${user.lastname}`,
+                        firstname: user.firstname,
+                        lastname: user.lastname,
+                        phone: user.phone,
+                        isAdmin: user.isAdmin,
                     };
-                } catch (err: any) {
-                    console.error("NextAuth authorize error:", err);
-                    throw new InvalidLoginError(err.message || "Authentication failed", {});
+                } catch (error) {
+                    console.error("Error in authorize function:", error);
+                    return null;
                 }
             },
         }),
@@ -147,9 +109,12 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     callbacks: {
         async signIn({ user, account, profile }) {
             console.log("SignIn callback - provider:", account?.provider);
+            console.log("SignIn callback - account object:", JSON.stringify(account, null, 2));
             
+            // Check if this is a Google sign-in
             if (account?.provider === 'google' && profile?.email) {
                 const email = profile.email;
+                
                 console.log("Google auth - looking up user with email:", email);
                 
                 const existingUsers = await db
@@ -161,7 +126,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                 if (existingUsers.length > 0) {
                     // User exists, allow sign-in and update login stats
                     const userData = existingUsers[0];
-                    console.log("Google auth - user found in database, ID:", userData.id, "isAdmin:", userData.isAdmin);
+                    console.log("Google auth - user found in database, ID:", userData.id);
                     
                     await db
                         .update(users)
@@ -179,22 +144,63 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                     user.lastname = userData.lastname;
                     user.name = `${userData.firstname || ""} ${userData.lastname || ""}`.trim() || user.name;
                     
-                    console.log("Google auth - updated user object:", {
-                        id: user.id,
-                        isAdmin: user.isAdmin,
-                        userStatus: user.userStatus
-                    });
-                    
                     return true;
                 } else {
-                    // User doesn't exist, store profile and redirect to account creation confirmation
-                    const token = crypto.randomUUID();
-                    await db.insert(temporaryGoogleProfiles).values({
-                        token,
-                        profileData: JSON.stringify(profile),
-                        createdAt: new Date(),
+                    // User doesn't exist, create account directly without confirmation
+                    console.log("Google auth - Creating new user automatically");
+                    
+                    // Format name from profile
+                    const name = profile.name || '';
+                    const nameParts = name.split(' ');
+                    const firstname = nameParts[0] || '';
+                    const lastname = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+                    
+                    // Format the date properly for MySQL
+                    const now = new Date();
+                    const formattedDate = now.toISOString().slice(0, 19).replace('T', ' ');
+                    
+                    // Create user data
+                    const userData = {
+                        email: profile.email,
+                        firstname,
+                        lastname: lastname || firstname, // Use firstname as lastname if not provided
+                        activated: 1,
+                        verified: 1, // Mark as verified since it's from Google
+                        userStatus: 0,
+                        isAdmin: 0,
+                        logins: 1,
+                        signupDate: formattedDate,
+                        profilePic: profile.picture || null
+                    };
+                    
+                    console.log("Creating user with Google data:", { 
+                        email: userData.email,
+                        firstname: userData.firstname,
+                        lastname: userData.lastname
                     });
-                    return `/auth/create-account?token=${token}&provider=google`;
+                    
+                    try {
+                        // Create the user
+                        const result = await db.insert(users).values(userData);
+                        
+                        // Get the newly created user
+                        const newUser = await db
+                            .select()
+                            .from(users)
+                            .where(eq(users.email, profile.email as string))
+                            .limit(1);
+                        
+                        if (newUser.length > 0) {
+                            user.id = String(newUser[0].id);
+                            user.isAdmin = newUser[0].isAdmin;
+                            user.userStatus = newUser[0].userStatus;
+                        }
+                        
+                        return true;
+                    } catch (error) {
+                        console.error("Error creating user from Google profile:", error);
+                        return `/auth/error?error=registration_failed`;
+                    }
                 }
             }
             return true; // Allow sign-in for other providers

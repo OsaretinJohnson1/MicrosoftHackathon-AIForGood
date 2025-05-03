@@ -10,9 +10,9 @@ export const authConfig = {
         GitHub({allowDangerousEmailAccountLinking: true})
     ],
     pages: {
-        signIn: "/auth/login",
+        signIn: "/login",
         // signOut: "/auth/signin",
-        signOut: "/auth/login",
+        signOut: "/login",
     },
     // basePath: process.env.AUTH_URL,
 

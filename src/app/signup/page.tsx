@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, Mail, Github, User } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { MotionDiv, fadeIn, staggerContainer } from "@/components/motion/motion"
+import { signIn } from "next-auth/react"
 
 export default function SignupPage() {
   const router = useRouter()
@@ -22,23 +23,197 @@ export default function SignupPage() {
     name: "",
     email: "",
     password: "",
+    confirmPassword: "",
+  })
+  const [formError, setFormError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<{
+    name?: string;
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
+  }>({})
+  
+  // Track which fields have been touched/focused
+  const [touchedFields, setTouchedFields] = useState<{
+    name: boolean;
+    email: boolean;
+    password: boolean;
+    confirmPassword: boolean;
+  }>({
+    name: false,
+    email: false,
+    password: false,
+    confirmPassword: false,
   })
 
+  // Add a common style for field error messages
+  const fieldErrorStyle = "text-red-500 text-xs mt-1 font-medium";
+
+  const validateField = (name: string, value: string) => {
+    const errors: Record<string, string> = {};
+    
+    switch (name) {
+      case 'name':
+        if (value.trim() === '') {
+          errors.name = 'Full name is required';
+        }
+        break;
+      
+      case 'email':
+        if (value === '') {
+          errors.email = 'Email is required';
+        } else if (!/\S+@\S+\.\S+/.test(value)) {
+          errors.email = 'Please enter a valid email address';
+        }
+        break;
+      
+      case 'password':
+        if (value === '') {
+          errors.password = 'Password is required';
+        } else if (value.length < 6) {
+          errors.password = 'Password must be at least 6 characters';
+        }
+        break;
+      
+      case 'confirmPassword':
+        if (value === '') {
+          errors.confirmPassword = 'Please confirm your password';
+        } else if (value !== formData.password) {
+          errors.confirmPassword = 'Passwords do not match';
+        }
+        break;
+      
+      default:
+        break;
+    }
+    
+    return errors;
+  };
+
+  // Validate all fields
+  const validateAllFields = () => {
+    const nameErrors = validateField('name', formData.name);
+    const emailErrors = validateField('email', formData.email);
+    const passwordErrors = validateField('password', formData.password);
+    const confirmPasswordErrors = validateField('confirmPassword', formData.confirmPassword);
+    
+    return { ...nameErrors, ...emailErrors, ...passwordErrors, ...confirmPasswordErrors };
+  };
+
+  // Handle field changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+    
+    // Clear general form error when user types
+    setFormError(null)
+    
+    // Clear field-specific error when field changes
+    if (fieldErrors[name as keyof typeof fieldErrors]) {
+      setFieldErrors(prev => ({ ...prev, [name]: undefined }));
+    }
   }
 
+  // Handle blur event (when field loses focus)
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { name } = e.target;
+    
+    // Mark field as touched
+    setTouchedFields(prev => ({
+      ...prev,
+      [name]: true
+    }));
+    
+    // Validate field on blur
+    const fieldValue = formData[name as keyof typeof formData];
+    const errors = validateField(name, fieldValue);
+    
+    setFieldErrors(prev => ({
+      ...prev,
+      ...errors
+    }));
+  };
+
+  // Validate form before submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setFormError(null)
+    
+    // Basic validation
+    if (!formData.email || !formData.password || !formData.name || !formData.confirmPassword) {
+      setFormError("Please fill in all required fields");
+      setIsLoading(false);
+      return;
+    }
+    
+    // Check if passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setFormError("Passwords do not match");
+      setIsLoading(false);
+      return;
+    }
 
     try {
-      // In a real app, you would call your API to register the user
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      router.push("/")
+      // Extract first and last name
+      const nameParts = formData.name.trim().split(" ")
+      const firstname = nameParts[0]
+      const lastname = nameParts.length > 1 ? nameParts.slice(1).join(" ") : ""
+
+      console.log("Registering with data:", { email: formData.email, firstname, lastname })
+
+      // Submit to registration API
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          firstname,
+          lastname: lastname || firstname, // Use firstname as lastname if not provided
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        // Handle specific API errors
+        if (response.status === 409) {
+          throw new Error("This email is already registered. Please use a different email or try logging in.")
+        } else if (data.error) {
+          throw new Error(data.error)
+        } else {
+          throw new Error("Registration failed. Please try again.")
+        }
+      }
+
+      console.log("Registration successful:", data)
+
+      // Sign in the user with NextAuth
+      const signInResult = await signIn("credentials", {
+        redirect: false,
+        email: formData.email,
+        password: formData.password,
+      })
+
+      console.log("SignIn result:", signInResult)
+
+      if (signInResult?.error) {
+        throw new Error("Account created but couldn't sign in automatically. Please go to login page.")
+      }
+
+      if (signInResult?.ok) {
+        router.push("/dashboard") // Redirect to dashboard
+      }
     } catch (error) {
       console.error("Signup error:", error)
+      if (error instanceof Error) {
+        setFormError(error.message)
+      } else {
+        setFormError("An unexpected error occurred")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -77,26 +252,42 @@ export default function SignupPage() {
                         transition={{ duration: 0.3 }}
                       >
                         <form onSubmit={handleSubmit} className="space-y-4">
+                          <AnimatePresence>
+                            {formError && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="text-sm text-red-500 bg-red-50 p-2 rounded-md"
+                              >
+                                {formError}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                           <MotionDiv variants={fadeIn(0.4, 0.5)}>
                             <div className="space-y-2">
-                              <Label htmlFor="name">Full Name</Label>
+                              <Label htmlFor="name">Full Name<span className="text-red-500">*</span></Label>
                               <div className="relative">
                                 <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                                 <Input
                                   id="name"
                                   name="name"
-                                  placeholder="Enter your name"
+                                  placeholder="Enter your full name"
                                   value={formData.name}
                                   onChange={handleChange}
-                                  className="pl-10"
+                                  onBlur={handleBlur}
+                                  className={`pl-10 ${(touchedFields.name && fieldErrors.name) ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                                   required
                                 />
                               </div>
+                              {touchedFields.name && fieldErrors.name && (
+                                <p className={fieldErrorStyle}>{fieldErrors.name}</p>
+                              )}
                             </div>
                           </MotionDiv>
                           <MotionDiv variants={fadeIn(0.5, 0.5)}>
                             <div className="space-y-2">
-                              <Label htmlFor="email">Email</Label>
+                              <Label htmlFor="email">Email<span className="text-red-500">*</span></Label>
                               <div className="relative">
                                 <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                                 <Input
@@ -106,16 +297,20 @@ export default function SignupPage() {
                                   placeholder="Enter your email"
                                   value={formData.email}
                                   onChange={handleChange}
-                                  className="pl-10"
+                                  onBlur={handleBlur}
+                                  className={`pl-10 ${(touchedFields.email && fieldErrors.email) ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                                   required
                                 />
                               </div>
+                              {touchedFields.email && fieldErrors.email && (
+                                <p className={fieldErrorStyle}>{fieldErrors.email}</p>
+                              )}
                             </div>
                           </MotionDiv>
                           <MotionDiv variants={fadeIn(0.6, 0.5)}>
                             <div className="space-y-2">
                               <div className="flex items-center justify-between">
-                                <Label htmlFor="password">Password</Label>
+                                <Label htmlFor="password">Password<span className="text-red-500">*</span></Label>
                               </div>
                               <Input
                                 id="password"
@@ -124,27 +319,51 @@ export default function SignupPage() {
                                 placeholder="Create a password"
                                 value={formData.password}
                                 onChange={handleChange}
+                                onBlur={handleBlur}
+                                className={(touchedFields.password && fieldErrors.password) ? "border-red-500 focus-visible:ring-red-500" : ""}
                                 required
                               />
+                              {touchedFields.password && fieldErrors.password && (
+                                <p className={fieldErrorStyle}>{fieldErrors.password}</p>
+                              )}
                             </div>
                           </MotionDiv>
                           <MotionDiv variants={fadeIn(0.7, 0.5)}>
-                            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                              <Button
-                                type="submit"
-                                className="w-full bg-purple-700 hover:bg-purple-800"
-                                disabled={isLoading}
-                              >
-                                {isLoading ? (
-                                  <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Creating account...
-                                  </>
-                                ) : (
-                                  "Sign Up"
-                                )}
-                              </Button>
-                            </motion.div>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor="confirmPassword">Confirm Password<span className="text-red-500">*</span></Label>
+                              </div>
+                              <Input
+                                id="confirmPassword"
+                                name="confirmPassword"
+                                type="password"
+                                placeholder="Confirm your password"
+                                value={formData.confirmPassword}
+                                onChange={handleChange}
+                                onBlur={handleBlur}
+                                className={(touchedFields.confirmPassword && fieldErrors.confirmPassword) ? "border-red-500 focus-visible:ring-red-500" : ""}
+                                required
+                              />
+                              {touchedFields.confirmPassword && fieldErrors.confirmPassword && (
+                                <p className={fieldErrorStyle}>{fieldErrors.confirmPassword}</p>
+                              )}
+                            </div>
+                          </MotionDiv>
+                          <MotionDiv variants={fadeIn(0.8, 0.5)}>
+                            <Button
+                              type="submit"
+                              className="w-full bg-purple-700 hover:bg-purple-800"
+                              disabled={isLoading}
+                            >
+                              {isLoading ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Creating account...
+                                </>
+                              ) : (
+                                "Sign Up"
+                              )}
+                            </Button>
                           </MotionDiv>
                         </form>
                       </motion.div>
@@ -159,13 +378,37 @@ export default function SignupPage() {
                         className="space-y-4"
                       >
                         <motion.div whileHover={{ y: -5 }} whileTap={{ scale: 0.97 }}>
-                          <Button variant="outline" className="w-full" onClick={() => setIsLoading(true)}>
-                            <Github className="mr-2 h-4 w-4" />
+                          <Button 
+                            variant="outline" 
+                            className="w-full" 
+                            onClick={() => {
+                              setIsLoading(true)
+                              signIn('github', { callbackUrl: '/dashboard' })
+                            }}
+                            disabled={isLoading}
+                          >
+                            {isLoading ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Github className="mr-2 h-4 w-4" />
+                            )}
                             Continue with GitHub
                           </Button>
                         </motion.div>
                         <motion.div whileHover={{ y: -5 }} whileTap={{ scale: 0.97 }}>
-                          <Button variant="outline" className="w-full" onClick={() => setIsLoading(true)}>
+                          <Button 
+                            variant="outline" 
+                            className="w-full" 
+                            onClick={() => {
+                              setIsLoading(true)
+                              // Use standard Google provider with registration marker in state
+                              signIn('google', { 
+                                callbackUrl: '/dashboard',
+                                state: 'registration=true'
+                              })
+                            }}
+                            disabled={isLoading}
+                          >
                             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                               <path
                                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -185,18 +428,26 @@ export default function SignupPage() {
                               />
                               <path d="M1 1h22v22H1z" fill="none" />
                             </svg>
-                            Continue with Google
+                            {isLoading ? 'Connecting...' : 'Continue with Google'}
                           </Button>
                         </motion.div>
                         <motion.div whileHover={{ y: -5 }} whileTap={{ scale: 0.97 }}>
-                          <Button variant="outline" className="w-full" onClick={() => setIsLoading(true)}>
+                          <Button 
+                            variant="outline" 
+                            className="w-full" 
+                            onClick={() => {
+                              setIsLoading(true)
+                              signIn('apple', { callbackUrl: '/dashboard' })
+                            }}
+                            disabled={isLoading}
+                          >
                             <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                               <path
                                 d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.03.13.05.28.05.43zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.377 0-2.332-1.26-3.428-2.8-1.287-1.82-2.323-4.63-2.323-7.28 0-4.28 2.797-6.55 5.552-6.55 1.448 0 2.675.95 3.6.95.865 0 2.222-1.01 3.902-1.01.613 0 2.886.06 4.374 2.19-.13.09-2.383 1.37-2.383 4.19 0 3.26 2.854 4.42 2.955 4.45z"
                                 fill="#000"
                               />
                             </svg>
-                            Continue with Apple
+                            {isLoading ? 'Connecting...' : 'Continue with Apple'}
                           </Button>
                         </motion.div>
                       </motion.div>

@@ -1,16 +1,6 @@
 import { mysqlTable, int, text, datetime, unique, varchar, index, foreignKey } from "drizzle-orm/mysql-core"
 import { sql } from "drizzle-orm"
 
-// Define user roles for permission control
-export const userRoles = mysqlTable("user_roles", {
-	id: int().autoincrement().primaryKey().notNull(),
-	name: varchar({ length: 50 }).notNull().unique(),
-	description: text(),
-	permissions: text(), // JSON string of permissions
-	createdAt: datetime({ mode: 'string' }).notNull().default(sql`CURRENT_TIMESTAMP`),
-	updatedAt: datetime({ mode: 'string' }).notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
-});
-
 // Users table with improved fields
 export const users = mysqlTable("users", {
 	id: int().autoincrement().primaryKey().notNull(),
@@ -19,7 +9,6 @@ export const users = mysqlTable("users", {
 	email: varchar({ length: 255 }).notNull().unique(),
 	phone: varchar({ length: 20 }),
 	password: varchar({ length: 255 }),
-	roleId: int().default(2), // Default to regular user, 1 would be admin
 	activated: int().default(1).notNull(),
 	verified: int().default(0).notNull(),
 	signupDate: datetime({ mode: 'string' }).notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -40,12 +29,6 @@ export const users = mysqlTable("users", {
 	return {
 		idUnique: unique("id_UNIQUE").on(table.id),
 		emailIdx: index("email_idx").on(table.email),
-		roleIdIdx: index("role_id_idx").on(table.roleId),
-		roleIdFk: foreignKey({
-			columns: [table.roleId],
-			foreignColumns: [userRoles.id],
-			name: "fk_user_role"
-		})
 	}
 });
 
