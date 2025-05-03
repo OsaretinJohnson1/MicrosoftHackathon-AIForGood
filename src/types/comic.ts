@@ -12,6 +12,7 @@ export interface Panel {
     createdAt: string
     language?: string
     userId?: string
+    characters?: string[]
   }
   
   export interface ComicScene {
