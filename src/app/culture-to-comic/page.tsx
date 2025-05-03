@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 
 export default function CultureToComic() {
   const [story, setStory] = useState("");
@@ -61,7 +62,7 @@ export default function CultureToComic() {
               setStory(data.text);
             } catch (error) {
               console.error("Error transcribing audio:", error);
-              alert("Failed to transcribe audio. Please try again.");
+              toast.error("Failed to transcribe audio. Please try again.");
             }
           }
         };
@@ -71,7 +72,7 @@ export default function CultureToComic() {
       setIsRecording(true);
     } catch (error) {
       console.error("Error accessing microphone:", error);
-      alert(
+      toast.error(
         "Could not access microphone. Please ensure you have granted permission."
       );
     }
@@ -101,13 +102,20 @@ export default function CultureToComic() {
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to generate comic");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to generate comic");
+      }
 
       const data = await response.json();
-      router.push(`/comic/${data.id}`);
+
+      // Navigate to the comic page with the generated data
+      router.push(
+        `/comic/${data.id}?data=${encodeURIComponent(JSON.stringify(data))}`
+      );
     } catch (error) {
       console.error("Error submitting story:", error);
-      alert("Failed to submit story. Please try again.");
+      toast.error("Failed to submit story. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
