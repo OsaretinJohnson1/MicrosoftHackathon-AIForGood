@@ -15,20 +15,29 @@ export async function POST(request: NextRequest) {
     if (!storyId) {
       return NextResponse.json({ error: "Missing storyId parameter" }, { status: 400 });
     }
-    
-    // Get the story content from the database
-    const story = await db.select({
-      id: stories.id,
-      title: stories.title,
-      content: stories.originalContent,
-      language: stories.originalLanguageId,
-    })
-    .from(stories)
-    .where(eq(stories.id, storyId))
-    .limit(1);
-    
-    if (!story || story.length === 0) {
-      return NextResponse.json({ error: "Story not found" }, { status: 404 });
+
+    // Generate scenes using Groq
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: 'system',
+          content: SCENE_GENERATION_PROMPT
+        },
+        {
+          role: 'user',
+          content: story
+        }
+      ],
+      model: 'llama-3.3-70b-versatile', // Using Mixtral model for high-quality output
+      temperature: 0.7,
+      max_tokens: 2000,
+      response_format: { type: 'json_object' }
+    });
+
+    // Parse the response
+    const response = completion.choices[0]?.message?.content;
+    if (!response) {
+      throw new Error('No response from Groq');
     }
     
     // Generate a comic script/breakdown from the story using GPT-4
