@@ -1,4 +1,4 @@
-import { applications, users } from "../database/ubuntu-lend/schema"
+import { users } from "../database/AI-For-Good/schema"
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { db } from "../database/db"

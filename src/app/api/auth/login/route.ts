@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { users } from "../../../../database/ubuntu-lend/schema";
+import { users } from "../../../../database/AI-For-Good/schema";
 import { loginSchema } from "../../../../lib/definitions";
 import { generateOTP, sendSMS, generateLoginOTPMessage } from "../../../../lib/otp-utils";
 import { getUserByField, updateUserDataMultipleFields } from "../../../../lib/utils";

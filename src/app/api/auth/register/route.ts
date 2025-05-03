@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { users, applications, loanTypes } from "@/database/ubuntu-lend/schema";
+import { users } from "@/database/AI-For-Good/schema";
 import { registerSchema, loanApplicationSchema } from "@/lib/definitions";
 import { cookies } from 'next/headers';
 import Tokens from 'csrf';
@@ -225,67 +225,6 @@ async function registerUser(userData: {
     }
 }
 
-// Function to create a loan application
-async function createLoanApplication(userId: number, applicationData: {
-    workAddress: string,
-    employer: string,
-    employmentType: string,
-    accountNumber: string,
-    accountName: string,
-    accountType: string,
-    bankName: string,
-    payDate: string,
-    loanAmount?: number,
-    loanTermMonths?: number,
-    interestRate?: number,
-    purpose?: string,
-    loanTypeId?: number
-}) {
-    try {
-        // Check if loan types exist, if not run the seed
-        const existingLoanTypes = await db.select().from(loanTypes);
-
-        if (existingLoanTypes.length === 0) {
-            console.log('No loan types found in database, running seed...');
-            await seedDatabase();
-            console.log('Loan types created successfully');
-        }
-
-        // Get a valid loan type ID (we'll use the provided loanTypeId or default to 1)
-        const loanTypeId = applicationData.loanTypeId || 1;
-
-        // Insert application into database with the valid loan type
-        await createUserData({
-            userId: userId,
-            workAddress: applicationData.workAddress || '',
-            employer: applicationData.employer,
-            employmentType: applicationData.employmentType || 'Full-time',
-            accountNumber: applicationData.accountNumber || '',
-            accountName: applicationData.accountName,
-            accountType: applicationData.accountType || '',
-            bankName: applicationData.bankName || '',
-            payDate: new Date(applicationData.payDate), // Convert string date to Date object
-            loanAmount: applicationData.loanAmount || 1000, // Default loan amount
-            loanTermMonths: applicationData.loanTermMonths || 12, // Default loan term
-            interestRate: applicationData.interestRate || 5.0, // Default interest rate
-            purpose: applicationData.purpose || 'Personal',
-            paymentSchedule: 'Monthly', // Default payment schedule
-            loanTypeId: loanTypeId, // Use provided or default loan type ID
-        }, applications);
-
-        return {
-            success: true
-        };
-    } catch (error: unknown) {
-        console.error("Error creating loan application:", error);
-        return {
-            success: false,
-            error: "An unexpected error occurred while creating the loan application",
-            status: 500
-        };
-    }
-}
-
 export async function POST(request: NextRequest) {
     try {
         // Validate CSRF
@@ -368,64 +307,6 @@ export async function POST(request: NextRequest) {
 
         // TypeScript fix: ensure we're treating user as a single object, not an array
         const user = registrationResult.user;
-        const userId = user?.id;
-
-        // If this is a loan application, create the application record
-        if (isLoanApplication && userId) {
-            const {
-                workAddress,
-                employer,
-                employmentType,
-                accountNumber,
-                accountName,
-                accountType,
-                bankName,
-                payDate,
-                loanAmount,
-                loanTermMonths,
-                purpose,
-                loanTypeId
-            } = body;
-
-            const applicationResult = await createLoanApplication(
-                userId,
-                {
-                    workAddress,
-                    employer,
-                    employmentType,
-                    accountNumber,
-                    accountName,
-                    accountType,
-                    bankName,
-                    payDate,
-                    loanAmount: parseFloat(loanAmount) || 1000,
-                    loanTermMonths: parseInt(loanTermMonths) || 12,
-                    interestRate: 5.0, // Default interest rate
-                    purpose,
-                    loanTypeId: parseInt(loanTypeId) || 1
-                }
-            );
-
-            if (!applicationResult.success) {
-                return NextResponse.json(
-                    { errors: { general: applicationResult.error }, success: false },
-                    { status: applicationResult.status || 500 }
-                );
-            }
-        }
-
-        // Return success response
-        return NextResponse.json(
-            {
-                success: true,
-                message: isLoanApplication ?
-                    "Loan application submitted successfully" :
-                    "Registration successful",
-                userId: userId,
-                name: `${firstname} ${lastname}`
-            },
-            { status: 201 }
-        );
 
     } catch (error) {
         console.error("Registration error:", error);

@@ -6,7 +6,7 @@ import Google from "next-auth/providers/google";
 import Facebook from "next-auth/providers/facebook";
 import { db } from "@/database/db";
 import { eq } from "drizzle-orm";
-import { users, temporaryGoogleProfiles } from "@/database/ubuntu-lend/schema";
+import { users, temporaryGoogleProfiles } from "@/database/AI-For-Good/schema";
 import crypto from 'crypto';
 
 export class InvalidLoginError extends AuthError {
