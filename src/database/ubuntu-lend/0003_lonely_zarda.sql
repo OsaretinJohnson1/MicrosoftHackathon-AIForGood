@@ -1,0 +1,1 @@
+ALTER TABLE `loan_types` ADD CONSTRAINT `name_unique_idx` UNIQUE(`name`);
