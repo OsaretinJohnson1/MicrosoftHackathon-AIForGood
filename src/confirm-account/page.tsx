@@ -1,13 +1,20 @@
 // pages/confirm-account.tsx
+import React from "react";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import type { NextPage } from "next";
 
-export default function ConfirmAccount() {
+interface Profile {
+  name?: string;
+  email?: string;
+}
+
+const ConfirmAccount: NextPage = () => {
   const router = useRouter();
   const { token } = router.query;
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (token) {
@@ -22,8 +29,8 @@ export default function ConfirmAccount() {
           setLoading(false);
         })
         .catch((error) => {
-        //   setError("Failed to load profile");
-        console.error("Error fetching profile:", error);
+          //   setError("Failed to load profile");
+          console.error("Error fetching profile:", error);
           setLoading(false);
         });
     }
@@ -50,7 +57,8 @@ export default function ConfirmAccount() {
     <div>
       <h1>Create Account</h1>
       <p>
-        You don’t have an account with us. Would you like to create one using your Google information?
+        You don't have an account with us. Would you like to create one using
+        your Google information?
       </p>
       {/* <p>Name: {profile?.name || "No name"}</p>
       <p>Email: {profile?.email || "No email"}</p> */}
@@ -58,4 +66,6 @@ export default function ConfirmAccount() {
       <button onClick={() => router.push("/auth/login")}>No, Cancel</button>
     </div>
   );
-}
+};
+
+export default ConfirmAccount;
