@@ -1,0 +1,10 @@
+diff --git a/node_modules/drizzle-orm/mysql2/session.js b/node_modules/drizzle-orm/mysql2/session.js
+index df4825e..45c3033 100644
+--- a/node_modules/drizzle-orm/mysql2/session.js
++++ b/node_modules/drizzle-orm/mysql2/session.js
+@@ -1,4 +1,4 @@
+-import { once } from "node:events";
++import { once } from "events";
+ import { Column } from "../column.js";
+ import { entityKind, is } from "../entity.js";
+ import { NoopLogger } from "../logger.js";

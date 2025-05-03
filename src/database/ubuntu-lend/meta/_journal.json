@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1744887296693,
+      "tag": "0000_overjoyed_sinister_six",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1744891991721,
+      "tag": "0001_noisy_giant_girl",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1745316735862,
+      "tag": "0002_conscious_shard",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1745317019555,
+      "tag": "0003_lonely_zarda",
+      "breakpoints": true
+    }
+  ]
+}
