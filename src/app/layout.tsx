@@ -1,58 +1,117 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { ThemeProvider } from 'next-themes'
-import { Toaster } from "sonner";
-import { SessionProvider } from "next-auth/react";
-import { cn } from "@/lib/utils";
+import type React from "react"
+import { Inter } from "next/font/google"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { ThemeProvider } from "@/components/theme-provider"
+import "./globals.css"
+import { Book, Menu } from "lucide-react"
 
-const geistSans = Geist({
-    variable: "--font-geist-sans",
-    subsets: ["latin"],
-});
+const inter = Inter({ subsets: ["latin"] })
 
-const geistMono = Geist_Mono({
-    variable: "--font-geist-mono",
-    subsets: ["latin"],
-});
+export const metadata = {
+  title: "Culture to Comic - Microsoft AI Fluency Hackathon",
+  description: "Transform cultural stories into visual comics using AI",
+}
 
-export const metadata: Metadata = {
-    title: "Ubuntu Loan | Community-Focused Lending Solutions",
-    description: "Get instant access to personal and business loans with competitive rates and flexible repayment options.",
-};
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body className={inter.className}>
+        <ThemeProvider attribute="class" defaultTheme="light">
+          <div className="flex flex-col min-h-screen">
+            <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+              <div className="container mx-auto px-4 flex justify-between items-center h-16">
+                <Link href="/" className="flex items-center space-x-2">
+                  <Book className="h-6 w-6 text-purple-700" />
+                  <span className="font-bold text-xl text-purple-900">CultureComic</span>
+                </Link>
 
-export default function RootLayout({
-    children,
-}: Readonly<{
-    children: React.ReactNode;
-}>) {
-    // This is a placeholder for actual auth checking logic
-    const isLoggedIn = false; // This would be replaced with actual auth check
+                {/* Desktop Navigation */}
+                <nav className="hidden md:flex items-center space-x-6">
+                  <Link href="/submit" className="text-sm font-medium hover:text-purple-700 transition-colors">
+                    Create Comic
+                  </Link>
+                  <Link href="/comics" className="text-sm font-medium hover:text-purple-700 transition-colors">
+                    Browse Comics
+                  </Link>
+                  <Link href="/about" className="text-sm font-medium hover:text-purple-700 transition-colors">
+                    About
+                  </Link>
+                  <div className="flex items-center space-x-2">
+                    <Link href="/login">
+                      <Button variant="ghost" className="text-sm">
+                        Log in
+                      </Button>
+                    </Link>
+                    <Link href="/signup">
+                      <Button className="text-sm bg-purple-700 hover:bg-purple-800">Sign up</Button>
+                    </Link>
+                  </div>
+                </nav>
 
+                {/* Mobile Menu Button */}
+                <div className="md:hidden">
+                  <Button variant="ghost" size="icon" className="text-primary">
+                    <Menu className="h-6 w-6" />
+                  </Button>
+                </div>
+              </div>
+            </header>
 
-    return (
-        <SessionProvider>
-        <html lang="en" suppressHydrationWarning>
-            <body
-                className={`${geistSans.variable} ${geistMono.variable} antialiased bg-stone-50`}
-            >
-                <ThemeProvider attribute="class">
-                    {/* <Header isLoggedIn={isLoggedIn} /> */}
+            <main className="flex-1">{children}</main>
 
-                    <main>
-                        {children}
-                    </main>
-                </ThemeProvider>
-                  
-                {/* <footer className="bg-stone-800 text-stone-300 py-8">
-          <div className="container mx-auto px-4 max-w-6xl text-center">
-            <p>© {new Date().getFullYear()} Ubuntu Loan. All rights reserved. NMLS ID #12345</p>
+            <footer className="bg-gray-900 text-white py-12">
+              <div className="container mx-auto px-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Culture to Comic</h3>
+                    <p className="text-gray-400">
+                      Preserving cultural heritage through AI-powered visual storytelling.
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
+                    <ul className="space-y-2">
+                      <li>
+                        <Link href="/" className="text-gray-400 hover:text-white transition-colors">
+                          Home
+                        </Link>
+                      </li>
+                      <li>
+                        <Link href="/submit" className="text-gray-400 hover:text-white transition-colors">
+                          Create Comic
+                        </Link>
+                      </li>
+                      <li>
+                        <Link href="/comics" className="text-gray-400 hover:text-white transition-colors">
+                          Browse Comics
+                        </Link>
+                      </li>
+                      <li>
+                        <Link href="/about" className="text-gray-400 hover:text-white transition-colors">
+                          About
+                        </Link>
+                      </li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Connect</h3>
+                    <p className="text-gray-400 mb-2">Join our community to share and preserve cultural stories.</p>
+                    <div className="flex space-x-4 mt-4">
+                      <Link href="/signup">
+                        <Button className="bg-purple-700 hover:bg-purple-800">Sign Up</Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+                <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400 text-sm">
+                  <p>© {new Date().getFullYear()} Culture to Comic. Microsoft AI Fluency Hackathon Project.</p>
+                </div>
+              </div>
+            </footer>
           </div>
-        </footer> */}
-
-                <Toaster position="top-right" />
-            </body>
-        </html>
-        </SessionProvider>
-    );
+        </ThemeProvider>
+      </body>
+    </html>
+  )
 }
