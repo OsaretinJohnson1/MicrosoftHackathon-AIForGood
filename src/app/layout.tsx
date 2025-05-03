@@ -4,7 +4,9 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ThemeProvider } from "@/components/theme-provider"
 import "./globals.css"
-import { Book, Menu } from "lucide-react"
+import { Menu } from "lucide-react"
+import { MotionDiv } from "@/components/motion/motion"
+import { AnimatedLogo } from "@/components/animated-logo"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -22,30 +24,67 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
               <div className="container mx-auto px-4 flex justify-between items-center h-16">
                 <Link href="/" className="flex items-center space-x-2">
-                  <Book className="h-6 w-6 text-purple-700" />
-                  <span className="font-bold text-xl text-purple-900">CultureComic</span>
+                  <AnimatedLogo />
+                  <MotionDiv
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ duration: 0.5, delay: 0.1 }}
+                  >
+                    <span className="font-bold text-xl text-purple-900">CultureComic</span>
+                  </MotionDiv>
                 </Link>
 
                 {/* Desktop Navigation */}
                 <nav className="hidden md:flex items-center space-x-6">
-                  <Link href="/submit" className="text-sm font-medium hover:text-purple-700 transition-colors">
-                    Create Comic
-                  </Link>
-                  <Link href="/comics" className="text-sm font-medium hover:text-purple-700 transition-colors">
-                    Browse Comics
-                  </Link>
-                  <Link href="/about" className="text-sm font-medium hover:text-purple-700 transition-colors">
-                    About
-                  </Link>
+                  <MotionDiv
+                    initial={{ y: -10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.3, delay: 0.2 }}
+                  >
+                    <Link href="/submit" className="text-sm font-medium hover:text-purple-700 transition-colors">
+                      Create Comic
+                    </Link>
+                  </MotionDiv>
+                  <MotionDiv
+                    initial={{ y: -10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.3, delay: 0.3 }}
+                  >
+                    <Link href="/comics" className="text-sm font-medium hover:text-purple-700 transition-colors">
+                      Browse Comics
+                    </Link>
+                  </MotionDiv>
+                  <MotionDiv
+                    initial={{ y: -10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.3, delay: 0.4 }}
+                  >
+                    <Link href="/about" className="text-sm font-medium hover:text-purple-700 transition-colors">
+                      About
+                    </Link>
+                  </MotionDiv>
                   <div className="flex items-center space-x-2">
-                    <Link href="/login">
-                      <Button variant="ghost" className="text-sm">
-                        Log in
-                      </Button>
-                    </Link>
-                    <Link href="/signup">
-                      <Button className="text-sm bg-purple-700 hover:bg-purple-800">Sign up</Button>
-                    </Link>
+                    <MotionDiv
+                      initial={{ y: -10, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ duration: 0.3, delay: 0.5 }}
+                    >
+                      <Link href="/login">
+                        <Button variant="ghost" className="text-sm">
+                          Log in
+                        </Button>
+                      </Link>
+                    </MotionDiv>
+                    <MotionDiv
+                      initial={{ y: -10, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ duration: 0.3, delay: 0.6 }}
+                      whileHover={{ scale: 1.05 }}
+                    >
+                      <Link href="/signup">
+                        <Button className="text-sm bg-purple-700 hover:bg-purple-800">Sign up</Button>
+                      </Link>
+                    </MotionDiv>
                   </div>
                 </nav>
 

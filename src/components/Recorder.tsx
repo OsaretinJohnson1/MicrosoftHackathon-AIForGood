@@ -123,7 +123,11 @@ export function Recorder({ onRecordingComplete, maxDuration = 120 }: RecorderPro
           {isRecording ? (
             <div className="flex flex-col w-full">
               <div className="text-xl font-mono text-purple-900 text-center mb-2">{formatTime(recordingTime)}</div>
-              <Progress value={progressPercentage} className="h-2 bg-purple-100" indicatorStyle={{ backgroundColor: "rgb(126 34 206)" }} />
+              <Progress 
+                value={progressPercentage} 
+                className="h-2 bg-purple-100" 
+                indicatorStyle={{ backgroundColor: '#7e22ce' }}  
+              />
             </div>
           ) : audioURL ? (
             <div className="w-full">
