@@ -1,65 +1,102 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Textarea } from "@/components/ui/textarea"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Recorder } from "@/components/Recorder"
-import { LanguageSelector } from "@/components/LanguageSelector"
-import { Loader2, Mic, Type, Globe, Info } from "lucide-react"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { motion, AnimatePresence } from "framer-motion"
-import { MotionDiv, fadeIn, staggerContainer } from "@/components/motion/motion"
-import { PageTransition } from "@/components/motion/page-transition"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Recorder } from "@/components/Recorder";
+import { LanguageSelector } from "@/components/LanguageSelector";
+import { Loader2, Mic, Type, Globe, Info } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  MotionDiv,
+  fadeIn,
+  staggerContainer,
+} from "@/components/motion/motion";
+import { PageTransition } from "@/components/motion/page-transition";
 
 export default function SubmitPage() {
-  const router = useRouter()
-  const [title, setTitle] = useState("")
-  const [story, setStory] = useState("")
-  const [audioFile, setAudioFile] = useState<File | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [activeTab, setActiveTab] = useState("text")
+  const router = useRouter();
+  const [title, setTitle] = useState("");
+  const [story, setStory] = useState("");
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState("text");
+  const [progress, setProgress] = useState(0);
 
   const handleAudioRecorded = (blob: Blob) => {
-    const file = new File([blob], "recording.webm", { type: "audio/webm" })
-    setAudioFile(file)
-  }
+    const file = new File([blob], "recording.webm", { type: "audio/webm" });
+    setAudioFile(file);
+  };
 
   const handleSubmit = async () => {
-    if ((!story && !audioFile) || !title) return
+    if ((!story && !audioFile) || !title) return;
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
 
     try {
-      const formData = new FormData()
-      formData.append("title", title)
+      const formData = new FormData();
+      formData.append("title", title);
 
       if (activeTab === "text") {
-        formData.append("story", story)
+        formData.append("story", story);
       } else if (audioFile) {
-        formData.append("audio", audioFile)
+        formData.append("audio", audioFile);
       }
 
       const response = await fetch("/api/generate-comic", {
         method: "POST",
         body: formData,
-      })
+      });
 
-      if (!response.ok) throw new Error("Failed to generate comic")
+      if (!response.ok) throw new Error("Failed to generate comic");
 
-      const data = await response.json()
-      router.push(`/comic/${data.id}`)
+      const data = await response.json();
+      router.push(`/comic/${data.id}`);
     } catch (error) {
-      console.error("Error submitting story:", error)
+      console.error("Error submitting story:", error);
       // Handle error (show toast, etc.)
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
+
+  useEffect(() => {
+    // Simulate processing steps
+    const steps = [
+      "Analyzing your story...",
+      "Creating scenes...",
+      "Generating characters...",
+      "Designing comic panels...",
+      "Finalizing your comic...",
+    ];
+
+    let currentStep = 0;
+    const interval = setInterval(() => {
+      if (currentStep < steps.length) {
+        setProgress((currentStep + 1) * (100 / steps.length));
+        currentStep++;
+      } else {
+        clearInterval(interval);
+        // Redirect to the comic view page
+        router.push("/comic/1"); // In a real app, this would be a dynamic ID
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [router]);
 
   return (
     <PageTransition>
@@ -85,7 +122,8 @@ export default function SubmitPage() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="text-lg text-muted-foreground max-w-2xl mx-auto"
             >
-              Transform your cultural experiences and traditions into beautiful comic panels using AI
+              Transform your cultural experiences and traditions into beautiful
+              comic panels using AI
             </motion.p>
           </MotionDiv>
 
@@ -95,7 +133,8 @@ export default function SubmitPage() {
                 <CardHeader>
                   <CardTitle>Create a New Comic</CardTitle>
                   <CardDescription>
-                    Tell us about a cultural experience, tradition, or story from your heritage
+                    Tell us about a cultural experience, tradition, or story
+                    from your heritage
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -117,18 +156,28 @@ export default function SubmitPage() {
 
                     <Tabs defaultValue="text" onValueChange={setActiveTab}>
                       <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="text" className="flex items-center gap-2">
+                        <TabsTrigger
+                          value="text"
+                          className="flex items-center gap-2"
+                        >
                           <Type className="h-4 w-4" />
                           Type Your Story
                         </TabsTrigger>
-                        <TabsTrigger value="voice" className="flex items-center gap-2">
+                        <TabsTrigger
+                          value="voice"
+                          className="flex items-center gap-2"
+                        >
                           <Mic className="h-4 w-4" />
                           Record Your Voice
                         </TabsTrigger>
                       </TabsList>
                       <AnimatePresence mode="wait">
                         {activeTab === "text" ? (
-                          <TabsContent value="text" className="space-y-2 pt-4" key="text-tab">
+                          <TabsContent
+                            value="text"
+                            className="space-y-2 pt-4"
+                            key="text-tab"
+                          >
                             <motion.div
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
@@ -146,7 +195,11 @@ export default function SubmitPage() {
                             </motion.div>
                           </TabsContent>
                         ) : (
-                          <TabsContent value="voice" className="pt-4" key="voice-tab">
+                          <TabsContent
+                            value="voice"
+                            className="pt-4"
+                            key="voice-tab"
+                          >
                             <motion.div
                               initial={{ opacity: 0, x: 20 }}
                               animate={{ opacity: 1, x: 0 }}
@@ -154,16 +207,21 @@ export default function SubmitPage() {
                               className="space-y-4"
                             >
                               <Label>Record Your Story</Label>
-                              <Recorder onRecordingComplete={handleAudioRecorded} />
+                              <Recorder
+                                onRecordingComplete={handleAudioRecorded}
+                              />
                               {audioFile && (
                                 <motion.div
                                   initial={{ opacity: 0, y: 10 }}
                                   animate={{ opacity: 1, y: 0 }}
                                   className="p-3 bg-purple-50 rounded-md border border-purple-200"
                                 >
-                                  <p className="text-sm font-medium text-purple-900">Recording saved!</p>
+                                  <p className="text-sm font-medium text-purple-900">
+                                    Recording saved!
+                                  </p>
                                   <p className="text-xs text-muted-foreground">
-                                    {audioFile.name} ({Math.round(audioFile.size / 1024)} KB)
+                                    {audioFile.name} (
+                                    {Math.round(audioFile.size / 1024)} KB)
                                   </p>
                                 </motion.div>
                               )}
@@ -188,15 +246,23 @@ export default function SubmitPage() {
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-between">
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
                     <Button variant="outline" onClick={() => router.back()}>
                       Cancel
                     </Button>
                   </motion.div>
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
                     <Button
                       onClick={handleSubmit}
-                      disabled={isSubmitting || (!story && !audioFile) || !title}
+                      disabled={
+                        isSubmitting || (!story && !audioFile) || !title
+                      }
                       className="bg-purple-700 hover:bg-purple-800"
                     >
                       {isSubmitting ? (
@@ -221,7 +287,9 @@ export default function SubmitPage() {
               >
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Tips for Great Comics</CardTitle>
+                    <CardTitle className="text-lg">
+                      Tips for Great Comics
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-2 text-sm">
@@ -235,11 +303,16 @@ export default function SubmitPage() {
                           key={index}
                           initial={{ opacity: 0, x: 20 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.3, delay: 0.4 + index * 0.1 }}
+                          transition={{
+                            duration: 0.3,
+                            delay: 0.4 + index * 0.1,
+                          }}
                           className="flex items-start gap-2"
                         >
                           <div className="rounded-full bg-purple-100 p-1 mt-0.5">
-                            <span className="text-purple-700 text-xs font-bold">{index + 1}</span>
+                            <span className="text-purple-700 text-xs font-bold">
+                              {index + 1}
+                            </span>
                           </div>
                           <span>{tip}</span>
                         </motion.li>
@@ -256,10 +329,12 @@ export default function SubmitPage() {
               >
                 <Alert className="bg-purple-50 border-purple-200">
                   <Info className="h-4 w-4 text-purple-700" />
-                  <AlertTitle className="text-purple-900">Privacy Note</AlertTitle>
+                  <AlertTitle className="text-purple-900">
+                    Privacy Note
+                  </AlertTitle>
                   <AlertDescription className="text-sm text-muted-foreground">
-                    Your stories are processed securely. You can choose to make your comic private or public after
-                    creation.
+                    Your stories are processed securely. You can choose to make
+                    your comic private or public after creation.
                   </AlertDescription>
                 </Alert>
               </motion.div>
@@ -271,10 +346,13 @@ export default function SubmitPage() {
                 whileHover={{ scale: 1.03 }}
                 className="bg-gradient-to-br from-purple-100 to-indigo-100 p-4 rounded-lg shadow-inner"
               >
-                <h3 className="font-semibold text-purple-900 mb-2">Why Share Your Story?</h3>
+                <h3 className="font-semibold text-purple-900 mb-2">
+                  Why Share Your Story?
+                </h3>
                 <p className="text-sm text-purple-800">
-                  Cultural stories help preserve heritage and connect generations. Your comic could inspire others to
-                  explore their own cultural roots.
+                  Cultural stories help preserve heritage and connect
+                  generations. Your comic could inspire others to explore their
+                  own cultural roots.
                 </p>
               </motion.div>
             </MotionDiv>
@@ -282,5 +360,5 @@ export default function SubmitPage() {
         </div>
       </div>
     </PageTransition>
-  )
+  );
 }
