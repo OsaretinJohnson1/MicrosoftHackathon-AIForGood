@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, Mail, Github, User } from "lucide-react"
+import { Loader2, Mail, Github, User, ArrowLeft } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { MotionDiv, fadeIn, staggerContainer } from "@/components/motion/motion"
 import { signIn } from "next-auth/react"
@@ -220,7 +220,23 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-50 to-white py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-50 to-white py-12 px-4 sm:px-6 lg:px-8 relative">
+      <motion.div 
+        className="absolute top-4 left-4 sm:top-8 sm:left-8"
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
+        <Button
+          variant="ghost"
+          onClick={() => router.push('/')}
+          className="rounded-full bg-gray-300 shadow-md hover:bg-purple-100 hover:shadow-lg hover:scale-105 active:scale-95 transition-all font-medium text-purple-800 px-6 py-2 text-base"
+          size="default"
+        >
+          Back
+        </Button>
+      </motion.div>
+
       <MotionDiv initial="hidden" animate="visible" variants={staggerContainer(0.1, 0.2)} className="w-full max-w-md">
         <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5 }}>
           <Card className="shadow-lg">

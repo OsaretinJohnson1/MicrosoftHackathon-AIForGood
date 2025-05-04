@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Mail, Lock, Loader2 } from "lucide-react"
+import { Mail, Lock, Loader2, ArrowLeft } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { MotionDiv, fadeIn, staggerContainer } from "@/components/motion/motion"
 import { LoadingAnimation } from "@/components/loading-animation"
@@ -152,7 +152,6 @@ export default function LoginPage() {
         console.error("Login failed:", result.error)
         throw new Error("Invalid email or password. Please try again.")
       }
-
       // Handle successful login
       if (result?.ok) {
         console.log("Login successful, redirecting...")
@@ -173,7 +172,25 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-50 to-white py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-50 to-white py-12 px-4 sm:px-6 lg:px-8 relative">
+      <motion.div 
+        className="absolute top-6 left-6"
+        initial={{ x: -20, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        <Button
+          variant="ghost"
+          className="flex items-center gap-2 text-purple-700 bg-gray-300 hover:text-purple-900 hover:bg-gray-200"
+          onClick={() => router.push('/')}
+        >
+          <ArrowLeft size={18} />
+          <span>Back</span>
+        </Button>
+      </motion.div>
+      
       <MotionDiv initial="hidden" animate="visible" variants={staggerContainer(0.1, 0.2)} className="w-full max-w-md">
         <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5 }}>
           <Card className="shadow-lg">
