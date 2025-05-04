@@ -7,6 +7,7 @@ import "./globals.css"
 import { Menu } from "lucide-react"
 import { MotionDiv } from "@/components/motion/motion"
 import { AnimatedLogo } from "@/components/animated-logo"
+import { Footer } from "@/components/footer"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="light">
           <div className="flex flex-col min-h-screen">
+            {/* 
             <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
               <div className="container mx-auto px-4 flex justify-between items-center h-16">
                 <Link href="/" className="flex items-center space-x-2">
@@ -34,23 +36,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   </MotionDiv>
                 </Link>
 
-                {/* Desktop Navigation */}
+                
                 <nav className="hidden md:flex items-center space-x-6">
                   <MotionDiv
                     initial={{ y: -10, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ duration: 0.3, delay: 0.2 }}
                   >
-                    <Link href="/submit" className="text-sm font-medium hover:text-purple-700 transition-colors">
-                      Create Comic
-                    </Link>
+                    
                   </MotionDiv>
                   <MotionDiv
                     initial={{ y: -10, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ duration: 0.3, delay: 0.3 }}
                   >
-                    <Link href="/comics" className="text-sm font-medium hover:text-purple-700 transition-colors">
+                    <Link href="/comics" className="text-sm font-medium text-purple-700 hover:text-black transition-colors">
                       Browse Comics
                     </Link>
                   </MotionDiv>
@@ -59,8 +59,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ duration: 0.3, delay: 0.4 }}
                   >
-                    <Link href="/about" className="text-sm font-medium hover:text-purple-700 transition-colors">
-                      About
+                    <Link href="/how-it-works" className="text-sm font-medium text-purple-700 hover:text-black transition-colors">
+                      How It Works
                     </Link>
                   </MotionDiv>
                   <div className="flex items-center space-x-2">
@@ -70,7 +70,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       transition={{ duration: 0.3, delay: 0.5 }}
                     >
                       <Link href="/login">
-                        <Button variant="ghost" className="text-sm">
+                        <Button variant="ghost" className="text-sm bg-blue-500 hover:bg-blue-200">
                           Log in
                         </Button>
                       </Link>
@@ -88,7 +88,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   </div>
                 </nav>
 
-                {/* Mobile Menu Button */}
+                
                 <div className="md:hidden">
                   <Button variant="ghost" size="icon" className="text-primary">
                     <Menu className="h-6 w-6" />
@@ -96,58 +96,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </div>
               </div>
             </header>
+            */}
 
             <main className="flex-1">{children}</main>
 
-            <footer className="bg-gray-900 text-white py-12">
-              <div className="container mx-auto px-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Culture to Comic</h3>
-                    <p className="text-gray-400">
-                      Preserving cultural heritage through AI-powered visual storytelling.
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
-                    <ul className="space-y-2">
-                      <li>
-                        <Link href="/" className="text-gray-400 hover:text-white transition-colors">
-                          Home
-                        </Link>
-                      </li>
-                      <li>
-                        <Link href="/submit" className="text-gray-400 hover:text-white transition-colors">
-                          Create Comic
-                        </Link>
-                      </li>
-                      <li>
-                        <Link href="/comics" className="text-gray-400 hover:text-white transition-colors">
-                          Browse Comics
-                        </Link>
-                      </li>
-                      <li>
-                        <Link href="/about" className="text-gray-400 hover:text-white transition-colors">
-                          About
-                        </Link>
-                      </li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Connect</h3>
-                    <p className="text-gray-400 mb-2">Join our community to share and preserve cultural stories.</p>
-                    <div className="flex space-x-4 mt-4">
-                      <Link href="/signup">
-                        <Button className="bg-purple-700 hover:bg-purple-800">Sign Up</Button>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-                <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400 text-sm">
-                  <p>© {new Date().getFullYear()} Culture to Comic. Microsoft AI Fluency Hackathon Project.</p>
-                </div>
-              </div>
-            </footer>
+            <Footer />
           </div>
         </ThemeProvider>
       </body>
