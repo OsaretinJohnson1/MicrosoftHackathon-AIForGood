@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import OpenAI from 'openai';
 
 export async function POST(request: Request) {
   try {
@@ -6,57 +7,48 @@ export async function POST(request: Request) {
 
     if (!prompt) {
       return NextResponse.json(
-        { error: 'Image prompt is required' },
+        { error: 'Prompt is required' },
         { status: 400 }
       );
     }
 
-    // TODO: Implement actual image generation when API is available
-    // For now, return a placeholder image
-    return NextResponse.json({
-      imageUrl: '/placeholder.svg?height=400&width=400&text=Image+Coming+Soon'
-    });
-
-    /* Commented out until proper image generation API is available
-    // Call Groq API to generate image
-    const response = await fetch('https://api.groq.com/openai/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'dall-e-3',
-        prompt: `Create a comic-style illustration: ${prompt}. Style: vibrant colors, clear lines, expressive characters, suitable for a comic book panel.`,
-        n: 1,
-        size: '1024x1024',
-        quality: 'standard',
-        style: 'vivid'
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Groq Image API Error:', errorData);
-      throw new Error('Failed to generate image');
+    // Validate environment variables
+    if (!process.env.AZURE_OPENAI_KEY || !process.env.AZURE_OPENAI_ENDPOINT) {
+      throw new Error('Azure OpenAI configuration is missing');
     }
 
-    const data = await response.json();
+    // Initialize OpenAI client for Azure
+    const client = new OpenAI({
+      apiKey: process.env.AZURE_OPENAI_KEY,
+      baseURL: `${process.env.AZURE_OPENAI_ENDPOINT}/mihla-ma8qzpjk-swedencentral.cognitiveservices.azure.com`,
+      defaultQuery: { 'api-version': '2023-12-01-preview' },
+      defaultHeaders: { 'api-key': process.env.AZURE_OPENAI_KEY },
+    });
+
+    // Call DALL-E API with proper typing
+    const response = await client.images.generate({
+      model: "dall-e-3",
+      prompt: `comic book style, ${prompt}, vibrant colors, clear lines, expressive characters, high quality, detailed, professional illustration`,
+      n: 1,
+      size: '1024x1024',
+      quality: 'standard',
+      style: 'vivid'
+    });
+
+    // Proper type checking for the response
+    if (!response.data || response.data.length === 0 || !response.data[0].url) {
+      throw new Error('Invalid response format from DALL-E API');
+    }
+
+    const imageUrl = response.data[0].url;
     
-    if (!data.data?.[0]?.url) {
-      throw new Error('No image URL in response');
-    }
-
-    return NextResponse.json({
-      imageUrl: data.data[0].url
-    });
-    */
+    return NextResponse.json({ imageUrl });
 
   } catch (error) {
     console.error('Image Generation Error:', error);
     return NextResponse.json(
-      { error: 'Failed to generate image' },
+      { error: error instanceof Error ? error.message : 'Failed to generate image' },
       { status: 500 }
     );
   }
-} 
+}

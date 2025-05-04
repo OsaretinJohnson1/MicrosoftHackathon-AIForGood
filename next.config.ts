@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
             {protocol: "https", hostname: "ubuntu-lend.azurewebsites.net"},
             {protocol: "https", hostname: "ubuntu-lend.com"},
             {protocol: "https", hostname: "ubuntu-lend.co.za"},
+            {protocol: "https", hostname: "dalleprodsec.blob.core.windows.net"},
         ]
     }
 };
