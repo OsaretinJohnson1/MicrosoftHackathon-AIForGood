@@ -48,7 +48,7 @@ export default function HomePage() {
               Transform your cultural stories and experiences into beautiful, shareable comics using AI technology.
             </MotionP>
             <MotionDiv className="mt-10 flex justify-center gap-4" variants={fadeIn(0.9, 0.7)}>
-              <Link href="/signup">
+              <Link href="/culture-to-comic">
                 <Button
                   size="lg"
                   className="px-8 py-6 text-lg bg-white text-purple-900 hover:bg-purple-100 relative overflow-hidden group"
