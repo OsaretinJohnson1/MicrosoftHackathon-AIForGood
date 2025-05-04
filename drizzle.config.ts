@@ -1,20 +1,16 @@
 import { defineConfig, Config } from 'drizzle-kit';
 import { config } from 'dotenv';
-import { resolve } from 'path';
-// config(); 
-config({ path: resolve(__dirname, '.env') }); // ✅ Force .env loading
+config(); 
 
 export default defineConfig({
     dialect: 'mysql', 
     dbCredentials: {
-        port: 3306, 
-        host: "appimate-clients-database-server.mysql.database.azure.com",
-        user: "appimateclientsadministrator",
-        password: "KTkSLH37tVmbWEJ",
-        database: "ai-for-good",
+        port: process.env.DB_PORT || 3306, 
+        host: process.env.DB_HOST || 'localhost',
+        user: process.env.DB_USER || 'root',
+        password: process.env.DB_PASSWORD || 'password',
+        database: 'ubuntu-lend-database', 
     },
-    schema: './src/database/AI-For-Good/schema.ts', 
-    out: './src/database/AI-For-Good', 
+    schema: './src/database/ubuntu-lend/schema.ts', 
+    out: './src/database/ubuntu-lend', 
 } as Config);
-
-console.log("DB ENV", process.env.DB_HOST, process.env.DB_USER, process.env.DB_PASSWORD, process.env.DB_NAME);
