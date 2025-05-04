@@ -23,7 +23,9 @@ export default function HomePage() {
       <Header />
       
       {/* Hero Section */}
+
       <HeroSection />
+
 
       {/* Features Section */}
       <HowItWorks />

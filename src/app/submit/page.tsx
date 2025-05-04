@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
@@ -16,50 +16,77 @@ import { motion, AnimatePresence } from "framer-motion"
 import { MotionDiv, fadeIn, staggerContainer } from "@/components/motion/motion"
 import { PageTransition } from "@/components/motion/page-transition"
 
+
 export default function SubmitPage() {
-  const router = useRouter()
-  const [title, setTitle] = useState("")
-  const [story, setStory] = useState("")
-  const [audioFile, setAudioFile] = useState<File | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [activeTab, setActiveTab] = useState("text")
+  const router = useRouter();
+  const [title, setTitle] = useState("");
+  const [story, setStory] = useState("");
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState("text");
+  const [progress, setProgress] = useState(0);
 
   const handleAudioRecorded = (blob: Blob) => {
-    const file = new File([blob], "recording.webm", { type: "audio/webm" })
-    setAudioFile(file)
-  }
+    const file = new File([blob], "recording.webm", { type: "audio/webm" });
+    setAudioFile(file);
+  };
 
   const handleSubmit = async () => {
-    if ((!story && !audioFile) || !title) return
+    if ((!story && !audioFile) || !title) return;
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
 
     try {
-      const formData = new FormData()
-      formData.append("title", title)
+      const formData = new FormData();
+      formData.append("title", title);
 
       if (activeTab === "text") {
-        formData.append("story", story)
+        formData.append("story", story);
       } else if (audioFile) {
-        formData.append("audio", audioFile)
+        formData.append("audio", audioFile);
       }
 
       const response = await fetch("/api/generate-comic", {
         method: "POST",
         body: formData,
-      })
+      });
 
-      if (!response.ok) throw new Error("Failed to generate comic")
+      if (!response.ok) throw new Error("Failed to generate comic");
 
-      const data = await response.json()
-      router.push(`/comic/${data.id}`)
+      const data = await response.json();
+      router.push(`/comic/${data.id}`);
     } catch (error) {
-      console.error("Error submitting story:", error)
+      console.error("Error submitting story:", error);
       // Handle error (show toast, etc.)
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
+
+  useEffect(() => {
+    // Simulate processing steps
+    const steps = [
+      "Analyzing your story...",
+      "Creating scenes...",
+      "Generating characters...",
+      "Designing comic panels...",
+      "Finalizing your comic...",
+    ];
+
+    let currentStep = 0;
+    const interval = setInterval(() => {
+      if (currentStep < steps.length) {
+        setProgress((currentStep + 1) * (100 / steps.length));
+        currentStep++;
+      } else {
+        clearInterval(interval);
+        // Redirect to the comic view page
+        router.push("/comic/1"); // In a real app, this would be a dynamic ID
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [router]);
 
   const handleLogout = () => {
     // Add any logout logic here (e.g., clearing tokens)
@@ -97,9 +124,11 @@ export default function SubmitPage() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="text-xl text-purple-700/70 max-w-2xl mx-auto font-light"
             >
-              Transform your cultural experiences and traditions into beautiful comic panels using AI
+              Transform your cultural experiences and traditions into beautiful
+              comic panels using AI
             </motion.p>
           </MotionDiv>
+
 
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
             <MotionDiv variants={fadeIn(0.3, 0.5)} className="md:col-span-8">
@@ -117,6 +146,7 @@ export default function SubmitPage() {
                   </CardTitle>
                   <CardDescription className="text-purple-700/70 text-base pt-1">
                     Tell us about a cultural experience, tradition, or story from your heritage
+
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6">
@@ -137,18 +167,22 @@ export default function SubmitPage() {
                       />
                     </motion.div>
 
+
                     <Tabs defaultValue="text" onValueChange={setActiveTab} className="mt-4">
                       <TabsList className="grid w-full grid-cols-2 p-1 bg-gradient-to-r from-purple-500/80 to-indigo-500/80 rounded-lg border-2 border-purple-100">
                         <TabsTrigger 
                           value="text" 
                           className="!text-black font-medium flex items-center gap-2 rounded-md data-[state=active]:bg-white data-[state=active]:text-purple-900 data-[state=active]:shadow-md data-[state=active]:border-2 data-[state=active]:border-purple-200 transition-all"
+
                         >
                           <Type className="h-4 w-4" />
                           Type Your Story
                         </TabsTrigger>
+
                         <TabsTrigger 
                           value="voice" 
                           className="!text-black !hover:text-gray-700 font-medium flex items-center gap-2 rounded-md data-[state=active]:bg-white data-[state=active]:text-purple-900 data-[state=active]:shadow-md data-[state=active]:border-2 data-[state=active]:border-purple-200 transition-all"
+
                         >
                           <Mic className="h-4 w-4" />
                           Record Your Voice
@@ -156,7 +190,9 @@ export default function SubmitPage() {
                       </TabsList>
                       <AnimatePresence mode="wait">
                         {activeTab === "text" ? (
+
                           <TabsContent value="text" className="space-y-3 pt-6" key="text-tab">
+
                             <motion.div
                               initial={{ opacity: 0, x: -10 }}
                               animate={{ opacity: 1, x: 0 }}
@@ -175,7 +211,9 @@ export default function SubmitPage() {
                             </motion.div>
                           </TabsContent>
                         ) : (
+
                           <TabsContent value="voice" className="pt-6" key="voice-tab">
+
                             <motion.div
                               initial={{ opacity: 0, x: 10 }}
                               animate={{ opacity: 1, x: 0 }}
@@ -183,6 +221,7 @@ export default function SubmitPage() {
                               transition={{ duration: 0.4 }}
                               className="space-y-4"
                             >
+
                               <Label className="text-purple-800 font-medium">Record Your Story</Label>
                               <div className="bg-purple-50/70 rounded-lg p-4 border-2 border-purple-200 text-black">
                                 <Recorder onRecordingComplete={handleAudioRecorded} />
@@ -206,6 +245,7 @@ export default function SubmitPage() {
                                   </motion.div>
                                 )}
                               </AnimatePresence>
+
                             </motion.div>
                           </TabsContent>
                         )}
@@ -226,6 +266,7 @@ export default function SubmitPage() {
                     </motion.div>
                   </div>
                 </CardContent>
+
                 <CardFooter className="flex justify-between py-5 border-t-2 border-purple-100/70 mt-4 bg-gradient-to-r from-purple-50/50 to-indigo-50/50">
                   <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <Button 
@@ -241,6 +282,7 @@ export default function SubmitPage() {
                       onClick={handleSubmit}
                       disabled={isSubmitting || (!story && !audioFile) || !title}
                       className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-black shadow-md hover:shadow-lg transition-all duration-300 border-2 border-purple-700"
+
                     >
                       {isSubmitting ? (
                         <motion.div 
@@ -275,10 +317,12 @@ export default function SubmitPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
               >
+
                 <Card className="shadow-lg border-2 border-indigo-200/50 bg-white/80 backdrop-blur-sm rounded-xl overflow-hidden">
                   <CardHeader className="pb-3 border-b-2 border-purple-100/50">
                     <CardTitle className="text-xl text-purple-950 flex items-center">
                       <span className="inline-block w-6 h-6 bg-indigo-600 text-black rounded-full mr-2 flex items-center justify-center text-xs">✨</span>
+
                       Tips for Great Comics
                     </CardTitle>
                   </CardHeader>
@@ -294,11 +338,13 @@ export default function SubmitPage() {
                           key={index}
                           initial={{ opacity: 0, x: 20 }}
                           animate={{ opacity: 1, x: 0 }}
+
                           transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
                           className="flex items-start gap-3"
                         >
                           <div className="rounded-full bg-gradient-to-r from-purple-100 to-indigo-100 p-1.5 mt-0.5 shadow-sm border border-indigo-200">
                             <span className="text-indigo-700 text-xs font-bold">{index + 1}</span>
+
                           </div>
                           <span className="text-purple-800">{tip}</span>
                         </motion.li>
@@ -314,12 +360,14 @@ export default function SubmitPage() {
                 transition={{ duration: 0.5, delay: 0.5 }}
                 className="overflow-hidden rounded-xl"
               >
+
                 <Alert className="bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-200 shadow-md">
                   <Info className="h-4 w-4 text-indigo-700" />
                   <AlertTitle className="text-indigo-900 font-medium">Privacy Note</AlertTitle>
                   <AlertDescription className="text-sm text-indigo-700/70">
                     Your stories are processed securely. You can choose to make your comic private or public after
                     creation.
+
                   </AlertDescription>
                 </Alert>
               </motion.div>
@@ -331,6 +379,7 @@ export default function SubmitPage() {
                 whileHover={{ scale: 1.03 }}
                 className="bg-gradient-to-br from-purple-500 to-indigo-600 p-6 rounded-xl shadow-xl overflow-hidden relative border-2 border-purple-400"
               >
+
                 <div className="absolute top-0 left-0 w-full h-full bg-[url('/patterns/cultural-pattern.svg')] opacity-10"></div>
                 <div className="relative z-10">
                   <h3 className="font-semibold text-black text-xl mb-3">Why Share Your Story?</h3>
@@ -346,6 +395,7 @@ export default function SubmitPage() {
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
                   </motion.div>
                 </div>
+
               </motion.div>
             </MotionDiv>
           </div>
@@ -378,5 +428,5 @@ export default function SubmitPage() {
         </motion.div>
       </div>
     </PageTransition>
-  )
+  );
 }
