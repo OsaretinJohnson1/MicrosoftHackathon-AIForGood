@@ -90,12 +90,12 @@ function CreateAccountPage () {
                     } else {
                         // If sign-in fails, redirect to login page with email prefilled
                         console.error("Sign-in failed after account creation:", signInResult?.error);
-                        router.push(`/auth/login?email=${encodeURIComponent(data.user.email)}&accountCreated=true`);
+                        router.push(`/login?email=${encodeURIComponent(data.user.email)}&accountCreated=true`);
                     }
                 } catch (signInError) {
                     console.error('Error signing in:', signInError);
                     // Fall back to login page
-                    router.push(`/auth/login?email=${encodeURIComponent(data.user.email)}&accountCreated=true`);
+                    router.push(`/login?email=${encodeURIComponent(data.user.email)}&accountCreated=true`);
                 }
             } else {
                 setError(data.error || 'Failed to create account');
@@ -155,7 +155,7 @@ function CreateAccountPage () {
                 <CardFooter className="flex justify-between">
                     <Button
                         variant="outline"
-                        onClick={() => router.push('/auth/login')}
+                        onClick={() => router.push('/login')}
                         disabled={creating}
                     >
                         Cancel
