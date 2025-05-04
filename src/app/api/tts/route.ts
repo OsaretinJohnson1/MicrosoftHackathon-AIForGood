@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 import * as sdk from 'microsoft-cognitiveservices-speech-sdk';
+import { NextApiRequest, NextApiResponse } from 'next';
+import { textToSpeech, TTSLanguage } from '@/lib/azure/tts';
+
+export const runtime = 'edge';
 
 // Azure Speech Service configuration
 const speechConfig = sdk.SpeechConfig.fromSubscription(
@@ -31,40 +35,43 @@ export async function POST(request: Request) {
     speechConfig.speechSynthesisLanguage = languageCode;
 
     // Create speech synthesizer
-    const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
+    const audioData = await textToSpeech(text, language as TTSLanguage);
 
-    // Convert text to speech
-    const result = await new Promise((resolve, reject) => {
-      synthesizer.speakTextAsync(
-        text,
-        (result) => {
-          if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
-            resolve(result.audioData);
-          } else {
-            reject(new Error(`Speech synthesis failed: ${result.errorDetails}`));
-          }
-          synthesizer.close();
-        },
-        (error) => {
-          reject(error);
-          synthesizer.close();
-        }
-      );
-    });
-
-    // Return the audio data
-    return new NextResponse(result as ArrayBuffer, {
+    return new NextResponse(audioData, {
       headers: {
         'Content-Type': 'audio/mpeg',
-        'Content-Length': (result as ArrayBuffer).byteLength.toString(),
+        'Content-Length': audioData.byteLength.toString(),
       },
     });
 
   } catch (error) {
     console.error('TTS Error:', error);
     return NextResponse.json(
-      { error: 'Failed to convert text to speech' },
+      { error: error instanceof Error ? error.message : 'Failed to convert text to speech' },
       { status: 500 }
     );
   }
 }
+
+
+
+const ttsHandler = async (req: NextApiRequest, res: NextApiResponse) => {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+ 
+  const { text, language } = req.body;
+ 
+  try {
+  // Set the language
+  const languageCode = languageMap[language] || 'en-US';
+ 
+  const audioData = await textToSpeech(text, languageCode);
+  res.setHeader('Content-Type', 'audio/mpeg');
+  res.setHeader('Content-Disposition', `attachment; filename="narration.mp3"`);
+  res.send(audioData);
+  } catch (error) {
+  console.error(error);
+  res.status(500).json({ error: 'Failed to generate TTS' });
+  }
+ };
+ 
+ export default ttsHandler;

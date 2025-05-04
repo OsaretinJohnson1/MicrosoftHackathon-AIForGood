@@ -9,6 +9,7 @@ interface ComicPanelProps {
   panel: Panel
   large?: boolean
   index?: number
+  onClick?: () => void
 }
 
 export function ComicPanel({ panel, large = false, index }: ComicPanelProps) {
