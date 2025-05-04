@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/database/db';
 import { eq } from 'drizzle-orm';
-import { temporaryGoogleProfiles } from '@/database/ubuntu-lend/schema';
+import { temporaryGoogleProfiles } from '@/database/AI-For-Good/schema';
 
 export async function GET(request: NextRequest) {
   try {

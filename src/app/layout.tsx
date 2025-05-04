@@ -4,7 +4,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ThemeProvider } from "@/components/theme-provider"
 import "./globals.css"
-import { Menu } from "lucide-react"
+import { Menu, User } from "lucide-react"
 import { MotionDiv } from "@/components/motion/motion"
 import { AnimatedLogo } from "@/components/animated-logo"
 import { Footer } from "@/components/footer"
@@ -76,18 +76,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       </Link>
                     </MotionDiv>
                     <MotionDiv
-                      initial={{ y: -10, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ duration: 0.3, delay: 0.6 }}
-                      whileHover={{ scale: 1.05 }}
+                      initial={{ x: -20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ duration: 0.5, delay: 0.1 }}
                     >
-                      <Link href="/signup">
-                        <Button className="text-sm bg-purple-700 hover:bg-purple-800">Sign up</Button>
-                      </Link>
+                      <span className="font-bold text-xl text-purple-900">CultureComic</span>
                     </MotionDiv>
-                  </div>
-                </nav>
+                  </Link>
 
+                  {/* Navigation with auth handling */}
+                  <HeaderNavigation />
                 
                 <div className="md:hidden">
                   <Button variant="ghost" size="icon" className="text-primary">
@@ -98,11 +96,59 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </header>
             */}
 
-            <main className="flex-1">{children}</main>
-
-            <Footer />
-          </div>
-        </ThemeProvider>
+              <main className="flex-1">{children}</main>
+              <footer className="bg-gray-900 text-white py-12">
+                <div className="container mx-auto px-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Culture to Comic</h3>
+                      <p className="text-gray-400">
+                        Preserving cultural heritage through AI-powered visual storytelling.
+                      </p>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
+                      <ul className="space-y-2">
+                        <li>
+                          <Link href="/" className="text-gray-400 hover:text-white transition-colors">
+                            Home
+                          </Link>
+                        </li>
+                        <li>
+                          <Link href="/submit" className="text-gray-400 hover:text-white transition-colors">
+                            Create Comic
+                          </Link>
+                        </li>
+                        <li>
+                          <Link href="/comics" className="text-gray-400 hover:text-white transition-colors">
+                            Browse Comics
+                          </Link>
+                        </li>
+                        <li>
+                          <Link href="/about" className="text-gray-400 hover:text-white transition-colors">
+                            About
+                          </Link>
+                        </li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Connect</h3>
+                      <p className="text-gray-400 mb-2">Join our community to share and preserve cultural stories.</p>
+                      <div className="flex space-x-4 mt-4">
+                        <Link href="/signup">
+                          <Button className="bg-purple-700 hover:bg-purple-800">Sign Up</Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400 text-sm">
+                    <p>© {new Date().getFullYear()} Culture to Comic. Microsoft AI Fluency Hackathon Project.</p>
+                  </div>
+                </div>
+              </footer>
+            </div>
+          </ThemeProvider>
+        </SessionProvider>
       </body>
     </html>
   )

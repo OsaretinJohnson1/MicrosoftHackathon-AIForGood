@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
-import * as sdk from 'microsoft-cognitiveservices-speech-sdk';
+import { NextRequest, NextResponse } from "next/server";
+import { transcribeAudio } from "@/lib/azure/speech";
+import { uploadAudio } from "@/lib/azure/blob";
 
 const languageMap: { [key: string]: string } = {
   'xh': 'xh-ZA', // isiXhosa
@@ -91,10 +92,12 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      text: result,
-      language: language
+      transcription: transcription.text,
+      confidence: transcription.confidence,
+      audioUrl: audioUrl,
+      language: languageCode
     });
-
+    
   } catch (error) {
     console.error('Transcription Error:', error);
     return NextResponse.json(

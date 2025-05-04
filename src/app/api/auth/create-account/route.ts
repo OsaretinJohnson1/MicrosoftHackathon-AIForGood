@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/database/db';
 import { eq } from 'drizzle-orm';
-import { temporaryGoogleProfiles, users } from '@/database/ubuntu-lend/schema';
+import { temporaryGoogleProfiles, users } from '@/database/AI-For-Good/schema';
 import { randomBytes } from 'crypto';
 import { signIn } from '@/auth';
 

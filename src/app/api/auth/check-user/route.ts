@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/database/db';
-import { users } from '@/database/ubuntu-lend/schema';
+import { users } from '@/database/AI-For-Good/schema';
 import { eq } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {

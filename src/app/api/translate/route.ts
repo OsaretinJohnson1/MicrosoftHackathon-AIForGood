@@ -1,4 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
+import { translateText } from "@/lib/azure/translator";
+import { db } from "@/database/db";
+import { stories, storyTranslations, languages } from "@/database/AI-For-Good/schema";
+import { eq, and } from "drizzle-orm";
 
 // Language code mapping
 const languageMap: { [key: string]: string } = {
@@ -94,24 +98,106 @@ export async function POST(request: Request) {
 
     const data = await response.json();
     
-    // The response format from Azure Translator is an array of translations
-    const translatedText = data[0]?.translations[0]?.text;
-
-    if (!translatedText) {
-      throw new Error('No translation returned');
+    // Validate required fields
+    if (!storyId) {
+      return NextResponse.json({ error: "Missing storyId parameter" }, { status: 400 });
     }
-
-    return NextResponse.json({
-      translatedText,
-      fromLanguage,
-      toLanguage
-    });
-
-  } catch (error) {
-    console.error('Translation Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to translate text' },
-      { status: 500 }
+    
+    if (!targetLanguageCode) {
+      return NextResponse.json({ error: "Missing targetLanguageCode parameter" }, { status: 400 });
+    }
+    
+    // Get target language ID from the database
+    const targetLanguage = await db.select({
+      id: languages.id,
+      code: languages.code
+    })
+    .from(languages)
+    .where(eq(languages.code, targetLanguageCode))
+    .limit(1);
+    
+    if (!targetLanguage || targetLanguage.length === 0) {
+      return NextResponse.json({ error: "Target language not supported" }, { status: 400 });
+    }
+    
+    // Check if translation already exists
+    const existingTranslation = await db.select({
+      id: storyTranslations.id,
+      translatedContent: storyTranslations.translatedContent
+    })
+    .from(storyTranslations)
+    .where(
+      and(
+        eq(storyTranslations.storyId, storyId),
+        eq(storyTranslations.languageId, targetLanguage[0].id)
+      )
+    )
+    .limit(1);
+    
+    // If translation exists, return it
+    if (existingTranslation && existingTranslation.length > 0) {
+      return NextResponse.json({
+        storyId,
+        languageId: targetLanguage[0].id,
+        translatedContent: existingTranslation[0].translatedContent,
+        isExisting: true
+      });
+    }
+    
+    // Get the original story content
+    const story = await db.select({
+      content: stories.originalContent,
+      languageId: stories.originalLanguageId
+    })
+    .from(stories)
+    .where(eq(stories.id, storyId))
+    .limit(1);
+    
+    if (!story || story.length === 0) {
+      return NextResponse.json({ error: "Story not found" }, { status: 404 });
+    }
+    
+    // Get source language code
+    const sourceLanguage = await db.select({
+      code: languages.code
+    })
+    .from(languages)
+    .where(eq(languages.id, story[0].languageId))
+    .limit(1);
+    
+    if (!sourceLanguage || sourceLanguage.length === 0) {
+      return NextResponse.json({ error: "Source language not found" }, { status: 404 });
+    }
+    
+    // Translate the content
+    const translatedContent = await translateText(
+      story[0].content,
+      sourceLanguage[0].code,
+      targetLanguageCode
     );
+    
+    // Save the translation to the database
+    await db.insert(storyTranslations)
+      .values({
+        storyId: storyId,
+        languageId: targetLanguage[0].id,
+        translatedContent: translatedContent,
+        translationType: "AI", // AI-generated translation
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+    
+    return NextResponse.json({
+      storyId,
+      languageId: targetLanguage[0].id,
+      translatedContent,
+      isExisting: false
+    });
+    
+  } catch (error) {
+    console.error("Translation error:", error);
+    return NextResponse.json({ 
+      error: `Error translating content: ${error instanceof Error ? error.message : String(error)}` 
+    }, { status: 500 });
   }
 }

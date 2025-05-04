@@ -1,49 +1,83 @@
 import { NextRequest, NextResponse } from "next/server";
-import { users } from "../../../../database/ubuntu-lend/schema";
-import { loginSchema } from "../../../../lib/definitions";
-import { generateOTP, sendSMS, generateLoginOTPMessage } from "../../../../lib/otp-utils";
-import { getUserByField, updateUserDataMultipleFields } from "../../../../lib/utils";
-import { loginUser } from "../../../../lib/utils";
-
+import { users } from "../../../../database/AI-For-Good/schema";
+import { db } from "../../../../database/db";
+import { eq } from "drizzle-orm";
+import bcrypt from "bcrypt";
 
 // API route handler
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { cellPhone, countryCode, recaptchaToken } = body;
+        const { email, password } = body;
         
-        // Check for missing required fields and provide detailed errors
-        const missingFields = [];
-        if (!cellPhone) missingFields.push("cellPhone");
-        if (!countryCode) missingFields.push("countryCode");
-        if (!recaptchaToken) missingFields.push("recaptchaToken");
-        
-        if (missingFields.length > 0) {
+        // Validate required fields
+        if (!email || !password) {
             return NextResponse.json({ 
-                error: `Missing required fields: ${missingFields.join(", ")}` 
+                success: false,
+                error: "Email and password are required" 
             }, { status: 400 });
         }
         
-        const result = await loginUser(cellPhone, countryCode, recaptchaToken);
+        // Find user by email
+        const userResults = await db.select()
+            .from(users)
+            .where(eq(users.email, email))
+            .limit(1);
         
-        if (!result.success) {
-            return NextResponse.json(
-                result.errors ? { error: result.error, errors: result.errors } : { error: result.error }, 
-                { status: result.status || 500 }
-            );
+        if (userResults.length === 0) {
+            // Don't reveal whether the email exists or not for security
+            return NextResponse.json({ 
+                success: false,
+                error: "Invalid credentials" 
+            }, { status: 401 });
         }
         
+        const user = userResults[0];
+        
+        // Check if user has a password
+        if (!user.password) {
+            return NextResponse.json({ 
+                success: false,
+                error: "Account requires password reset" 
+            }, { status: 401 });
+        }
+        
+        // Verify password
+        const passwordMatch = await bcrypt.compare(password, user.password);
+        
+        if (!passwordMatch) {
+            return NextResponse.json({ 
+                success: false,
+                error: "Invalid credentials" 
+            }, { status: 401 });
+        }
+        
+        // Update login count and timestamp
+        await db.update(users)
+            .set({ 
+                logins: (user.logins || 0) + 1,
+                lastLogin: new Date().toISOString()
+            })
+            .where(eq(users.id, user.id));
+        
+        // Return user data without sensitive information
         return NextResponse.json({
-            message: result.message,
-            user: result.user,
-            otp: result.otp,
-            smsSid: result.smsSid
-        }, { status: 200 });
+            success: true,
+            user: {
+                id: user.id,
+                email: user.email,
+                firstname: user.firstname,
+                lastname: user.lastname,
+                phone: user.phone,
+                isAdmin: user.isAdmin
+            }
+        });
         
     } catch (error) {
-        console.error("API route error:", error);
+        console.error("Login error:", error);
         return NextResponse.json({ 
-            error: `Error processing request: ${error instanceof Error ? error.message : String(error)}` 
+            success: false,
+            error: "Server error" 
         }, { status: 500 });
     }
 }

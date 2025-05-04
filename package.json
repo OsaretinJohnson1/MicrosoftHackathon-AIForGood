@@ -1,5 +1,5 @@
 {
-  "name": "ubuntu-loan",
+  "name": "ai-for-good",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -149,6 +149,7 @@
     "@types/jsonwebtoken": "^9.0.9",
     "assert": "^2.1.0",
     "axios": "^1.8.4",
+    "bcrypt": "^5.1.1",
     "browserify-zlib": "^0.2.0",
     "buffer": "^6.0.3",
     "class-variance-authority": "^0.7.1",
